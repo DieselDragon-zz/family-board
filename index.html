@@ -225,7 +225,7 @@
         </div>
     </div>
 
-    <div id="sync-status">Connecting to cloud...</div>
+    <div id="sync-status">Operating locally...</div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
@@ -236,13 +236,13 @@
         // ========================================================
         // 1. PASTE YOUR FIREBASE CONFIG HERE
         // ========================================================
- const firebaseConfig = {
-  apiKey: "AIzaSyDLNWYsMaF9e5pUbwfavFS6T4xI5Gjdygk",
-  authDomain: "family-task-board-55750.firebaseapp.com",
-  projectId: "family-task-board-55750",
-  storageBucket: "family-task-board-55750.firebasestorage.app",
-  messagingSenderId: "388294234836",
-  appId: "1:388294234836:web:59929d899cf1d16d22e141",
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "YOUR_APP_ID"
         };
 
         // Initialize Firebase
@@ -251,16 +251,16 @@
         try {
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
-            // We store all tasks in one document called 'allTasks' inside a collection called 'familyBoard'
             tasksDocRef = doc(db, 'familyBoard', 'allTasks'); 
         } catch (error) {
-            document.getElementById('sync-status').textContent = "Waiting for configuration...";
+            console.log("Waiting for valid Firebase configuration.");
         }
 
         // ========================================================
-        // 2. STATE & CLOUD SYNC
+        // 2. STATE & HYBRID SYNC (Local Storage + Cloud)
         // ========================================================
-        window.lists = { my: [], joint: [], her: [] };
+        // Pull from local storage first to guarantee instant loading
+        window.lists = JSON.parse(localStorage.getItem('familyTasks')) || { my: [], joint: [], her: [] };
         window.currentActiveTask = null; 
         window.isArchiveMode = false;
         window.sortableInstances = {}; 
@@ -270,26 +270,34 @@
             onSnapshot(tasksDocRef, (docSnapshot) => {
                 if (docSnapshot.exists()) {
                     window.lists = docSnapshot.data();
+                    localStorage.setItem('familyTasks', JSON.stringify(window.lists)); // Keep local synced
                     document.getElementById('sync-status').textContent = "Synced with Cloud ✓";
                 } else {
-                    // Document doesn't exist yet, push our empty template
-                    saveToCloud();
+                    window.saveToCloud();
                 }
-                renderLists();
+                window.renderLists();
             }, (error) => {
                 document.getElementById('sync-status').textContent = "Sync Error: Check Config/Rules";
                 console.error("Firebase Sync Error:", error);
             });
         }
 
-        // Helper to push current state to Firebase
-        function saveToCloud() {
-            if (!db) return;
-            document.getElementById('sync-status').textContent = "Saving...";
-            setDoc(tasksDocRef, window.lists).catch(err => {
-                console.error("Error saving:", err);
-                document.getElementById('sync-status').textContent = "Save Failed";
-            });
+        // Helper to push current state to storage engines and update UI
+        window.saveToCloud = function() {
+            // Bulletproof local save
+            localStorage.setItem('familyTasks', JSON.stringify(window.lists));
+            
+            // Cloud save if connected
+            if (db && tasksDocRef) {
+                document.getElementById('sync-status').textContent = "Saving...";
+                setDoc(tasksDocRef, window.lists).catch(err => {
+                    console.error("Error saving:", err);
+                    document.getElementById('sync-status').textContent = "Save Failed";
+                });
+            }
+            
+            // Guarantee UI updates immediately regardless of connection
+            window.renderLists();
         }
 
         // ========================================================
@@ -329,7 +337,7 @@
                     if(window.sortableInstances[list]) window.sortableInstances[list].option("disabled", false);
                 });
             }
-            renderLists();
+            window.renderLists();
         }
 
         window.renderLists = function() {
@@ -373,6 +381,16 @@
                     textSpan.textContent = task.text;
                     if (window.isArchiveMode) textSpan.style.textDecoration = "line-through";
                     topRow.appendChild(textSpan);
+                    
+                    // NEW: Note icon if there is subtext
+                    if (task.details && task.details.trim() !== "" && !window.isArchiveMode) {
+                        const noteSpan = document.createElement('span');
+                        noteSpan.innerHTML = ' 📝';
+                        noteSpan.style.opacity = '0.5';
+                        noteSpan.style.fontSize = '0.9rem';
+                        topRow.appendChild(noteSpan);
+                    }
+
                     contentDiv.appendChild(topRow);
 
                     if (window.isArchiveMode && task.completedAt) {
@@ -421,7 +439,7 @@
 
             window.lists[listType].push(newTask);
             input.value = "";
-            saveToCloud(); // Pushes to Firebase instantly
+            window.saveToCloud(); 
         }
 
         window.completeTask = function(listType, id, event) {
@@ -440,7 +458,7 @@
                 window.lists[listType][taskIndex].isCompleted = true;
                 window.lists[listType][taskIndex].completedAt = new Date().toISOString();
                 window.lists[listType][taskIndex].completedBy = completedBy;
-                saveToCloud();
+                window.saveToCloud();
             }
         }
 
@@ -450,13 +468,13 @@
                 window.lists[listType][taskIndex].isCompleted = false;
                 window.lists[listType][taskIndex].completedAt = null;
                 window.lists[listType][taskIndex].completedBy = null;
-                saveToCloud();
+                window.saveToCloud();
             }
         }
 
         window.deleteTask = function(listType, id) {
             window.lists[listType] = window.lists[listType].filter(task => task.id !== id);
-            saveToCloud();
+            window.saveToCloud();
         }
 
         window.openModal = function(listType, task) {
@@ -486,16 +504,20 @@
 
             const taskIndex = window.lists[listType].findIndex(t => t.id === task.id);
             if (taskIndex !== -1) {
+                // Check if properties actually changed before applying the new timestamp
+                const oldText = window.lists[listType][taskIndex].text;
+                const oldDetails = window.lists[listType][taskIndex].details;
+                const oldPriority = window.lists[listType][taskIndex].isPriority;
+
                 window.lists[listType][taskIndex].text = newText;
                 window.lists[listType][taskIndex].details = newDetails;
                 window.lists[listType][taskIndex].isPriority = newPriority;
                 
-                if (window.lists[listType][taskIndex].text !== task.text || 
-                    window.lists[listType][taskIndex].details !== task.details || 
-                    window.lists[listType][taskIndex].isPriority !== task.isPriority) {
+                if (newText !== oldText || newDetails !== oldDetails || newPriority !== oldPriority) {
                     window.lists[listType][taskIndex].edited = new Date().toISOString();
                 }
-                saveToCloud();
+                
+                window.saveToCloud();
             }
             window.closeModal();
         }
@@ -524,7 +546,7 @@
                     }
                     
                     taskList.splice(newMainIndex, 0, movedTask);
-                    saveToCloud(); // Push the newly ordered array to Firebase
+                    window.saveToCloud(); 
                 }
             });
         });
@@ -538,7 +560,7 @@
             });
         });
 
-        // First render will be local empty array, immediately overwritten when cloud connects
+        // Initial render pulling from local storage
         window.renderLists();
 
     </script>
