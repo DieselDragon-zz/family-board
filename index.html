@@ -13,56 +13,30 @@
             padding: 0;
         }
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden; 
-        }
+        body, html { width: 100%; height: 100%; overflow: hidden; }
 
         /* Archive Toggle Button */
         #archive-toggle {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            z-index: 999;
-            background: transparent;
-            border: none;
-            color: #888;
-            font-size: 0.7rem;
-            opacity: 0.2;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: opacity 0.3s;
+            position: fixed; top: 15px; right: 15px; z-index: 999;
+            background: transparent; border: none; color: #888;
+            font-size: 0.7rem; opacity: 0.2; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px; transition: opacity 0.3s;
         }
-
-        #archive-toggle:hover, #archive-toggle.active {
-            opacity: 0.8;
-        }
+        #archive-toggle:hover, #archive-toggle.active { opacity: 0.8; }
 
         /* Swipe Container */
         .swipe-container {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scroll-snap-type: x mandatory; 
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; 
-            -ms-overflow-style: none; 
+            display: flex; width: 100vw; height: 100vh;
+            overflow-x: auto; overflow-y: hidden;
+            scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; -ms-overflow-style: none; 
         }
         .swipe-container::-webkit-scrollbar { display: none; }
 
         /* Individual Layers */
         .layer {
-            flex: 0 0 100vw; 
-            height: 100vh;
-            scroll-snap-align: start;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            padding-top: 40px; 
+            flex: 0 0 100vw; height: 100vh; scroll-snap-align: start;
+            display: flex; flex-direction: column; padding: 20px; padding-top: 40px; 
         }
 
         .layer-header { text-align: center; margin-bottom: 20px; }
@@ -71,10 +45,7 @@
 
         /* Input Area */
         .input-group {
-            display: flex;
-            margin-bottom: 20px;
-            gap: 10px;
-            transition: opacity 0.3s, height 0.3s;
+            display: flex; margin-bottom: 20px; gap: 10px; transition: opacity 0.3s, height 0.3s;
         }
         .input-group.hidden { display: none; }
         .input-group input {
@@ -159,9 +130,7 @@
         .btn-save { background: #4a90e2; color: #fff; }
 
         /* Sync Indicator */
-        #sync-status {
-            position: fixed; bottom: 10px; right: 10px; font-size: 0.7rem; color: #888;
-        }
+        #sync-status { position: fixed; bottom: 10px; right: 10px; font-size: 0.75rem; color: #888; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -180,7 +149,6 @@
             </div>
             <ul id="my-list"></ul>
         </div>
-
         <div class="layer" id="layer-joint">
             <div class="layer-header">
                 <h2 id="title-joint">Joint List</h2>
@@ -192,7 +160,6 @@
             </div>
             <ul id="joint-list"></ul>
         </div>
-
         <div class="layer" id="layer-her">
             <div class="layer-header">
                 <h2 id="title-her">Her List</h2>
@@ -234,108 +201,81 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // ========================================================
-        // 1. PASTE YOUR FIREBASE CONFIG HERE
+        // 1. YOUR FIREBASE CONFIG
         // ========================================================
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "YOUR_APP_ID"
+          apiKey: "AIzaSyDLNWYsMaF9e5pUbwfavFS6T4xI5Gjdygk",
+          authDomain: "family-task-board-55750.firebaseapp.com",
+          projectId: "family-task-board-55750",
+          storageBucket: "family-task-board-55750.firebasestorage.app",
+          messagingSenderId: "388294234836",
+          appId: "1:388294234836:web:59929d899cf1d16d22e141"
         };
 
-        // Initialize Firebase
         let app, db, tasksDocRef;
-        
         try {
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             tasksDocRef = doc(db, 'familyBoard', 'allTasks'); 
-        } catch (error) {
-            console.log("Waiting for valid Firebase configuration.");
-        }
+        } catch (error) { console.log("Waiting for Firebase config."); }
 
-        // ========================================================
-        // 2. STATE & HYBRID SYNC (Local Storage + Cloud)
-        // ========================================================
-        // Pull from local storage first to guarantee instant loading
         window.lists = JSON.parse(localStorage.getItem('familyTasks')) || { my: [], joint: [], her: [] };
         window.currentActiveTask = null; 
         window.isArchiveMode = false;
         window.sortableInstances = {}; 
 
-        // Listen for real-time updates from Firebase
         if (db) {
             onSnapshot(tasksDocRef, (docSnapshot) => {
+                if (docSnapshot.metadata.hasPendingWrites) return;
                 if (docSnapshot.exists()) {
-                    window.lists = docSnapshot.data();
-                    localStorage.setItem('familyTasks', JSON.stringify(window.lists)); // Keep local synced
-                    document.getElementById('sync-status').textContent = "Synced with Cloud ✓";
-                } else {
-                    window.saveToCloud();
-                }
-                window.renderLists();
+                    const cloudData = docSnapshot.data();
+                    const cloudTotal = (cloudData.my?.length || 0) + (cloudData.joint?.length || 0) + (cloudData.her?.length || 0);
+                    const localTotal = (window.lists.my?.length || 0) + (window.lists.joint?.length || 0) + (window.lists.her?.length || 0);
+                    if (cloudTotal === 0 && localTotal > 0) { window.saveToCloud(); } 
+                    else {
+                        window.lists = cloudData;
+                        localStorage.setItem('familyTasks', JSON.stringify(window.lists));
+                        document.getElementById('sync-status').textContent = "Synced with Cloud ✓";
+                        document.getElementById('sync-status').style.color = "#2ecc71";
+                        window.renderLists();
+                    }
+                } else { window.saveToCloud(); }
             }, (error) => {
-                document.getElementById('sync-status').textContent = "Sync Error: Check Config/Rules";
-                console.error("Firebase Sync Error:", error);
+                document.getElementById('sync-status').textContent = "Sync Error: Check Rules!";
+                document.getElementById('sync-status').style.color = "#e74c3c";
             });
         }
 
-        // Helper to push current state to storage engines and update UI
         window.saveToCloud = function() {
-            // Bulletproof local save
             localStorage.setItem('familyTasks', JSON.stringify(window.lists));
-            
-            // Cloud save if connected
             if (db && tasksDocRef) {
                 document.getElementById('sync-status').textContent = "Saving...";
-                setDoc(tasksDocRef, window.lists).catch(err => {
-                    console.error("Error saving:", err);
-                    document.getElementById('sync-status').textContent = "Save Failed";
+                document.getElementById('sync-status').style.color = "#f39c12";
+                setDoc(tasksDocRef, window.lists).then(() => {
+                    document.getElementById('sync-status').textContent = "Synced with Cloud ✓";
+                    document.getElementById('sync-status').style.color = "#2ecc71";
+                }).catch(err => {
+                    document.getElementById('sync-status').textContent = "Save Failed: Check Rules!";
+                    document.getElementById('sync-status').style.color = "#e74c3c";
                 });
             }
-            
-            // Guarantee UI updates immediately regardless of connection
             window.renderLists();
         }
 
-        // ========================================================
-        // 3. CORE FUNCTIONS (Attached to window for HTML buttons)
-        // ========================================================
-        function formatDate(dateString) {
-            if (!dateString) return "Never";
-            const d = new Date(dateString);
-            return d.toLocaleDateString() + ' at ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        }
+        function formatDate(d) { return d ? new Date(d).toLocaleDateString() + ' at ' + new Date(d).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Never"; }
 
         window.toggleArchive = function() {
             window.isArchiveMode = !window.isArchiveMode;
             const btn = document.getElementById('archive-toggle');
             const container = document.getElementById('main-container');
-            
             if (window.isArchiveMode) {
-                btn.classList.add('active'); btn.style.color = '#4a90e2'; 
-                container.classList.add('archive-mode');
-                document.getElementById('title-my').textContent = "My Archive";
-                document.getElementById('title-joint').textContent = "Joint Archive";
-                document.getElementById('title-her').textContent = "Her Archive";
-                
-                ['my', 'joint', 'her'].forEach(list => {
-                    document.getElementById(`input-${list}`).classList.add('hidden');
-                    if(window.sortableInstances[list]) window.sortableInstances[list].option("disabled", true);
-                });
+                btn.classList.add('active'); btn.style.color = '#4a90e2'; container.classList.add('archive-mode');
+                document.getElementById('title-my').textContent = "My Archive"; document.getElementById('title-joint').textContent = "Joint Archive"; document.getElementById('title-her').textContent = "Her Archive";
+                ['my', 'joint', 'her'].forEach(list => { document.getElementById(`input-${list}`).classList.add('hidden'); if(window.sortableInstances[list]) window.sortableInstances[list].option("disabled", true); });
             } else {
-                btn.classList.remove('active'); btn.style.color = '#888';
-                container.classList.remove('archive-mode');
-                document.getElementById('title-my').textContent = "My List";
-                document.getElementById('title-joint').textContent = "Joint List";
-                document.getElementById('title-her').textContent = "Her List";
-                
-                ['my', 'joint', 'her'].forEach(list => {
-                    document.getElementById(`input-${list}`).classList.remove('hidden');
-                    if(window.sortableInstances[list]) window.sortableInstances[list].option("disabled", false);
-                });
+                btn.classList.remove('active'); btn.style.color = '#888'; container.classList.remove('archive-mode');
+                document.getElementById('title-my').textContent = "My List"; document.getElementById('title-joint').textContent = "Joint List"; document.getElementById('title-her').textContent = "Her List";
+                ['my', 'joint', 'her'].forEach(list => { document.getElementById(`input-${list}`).classList.remove('hidden'); if(window.sortableInstances[list]) window.sortableInstances[list].option("disabled", false); });
             }
             window.renderLists();
         }
@@ -344,225 +284,97 @@
             ['my', 'joint', 'her'].forEach(listType => {
                 const ul = document.getElementById(`${listType}-list`);
                 ul.innerHTML = ''; 
-                
                 if(!window.lists[listType]) window.lists[listType] = [];
-
-                window.lists[listType].sort((a, b) => {
-                    const aPriority = a.isPriority || false;
-                    const bPriority = b.isPriority || false;
-                    if (aPriority && !bPriority) return -1;
-                    if (!aPriority && bPriority) return 1;
-                    return 0; 
-                });
+                window.lists[listType].sort((a, b) => (a.isPriority ? -1 : 1) - (b.isPriority ? -1 : 1));
                 
                 window.lists[listType].forEach(task => {
-                    const isCompleted = task.isCompleted || false;
-                    if (window.isArchiveMode !== isCompleted) return;
-
+                    if (window.isArchiveMode !== (task.isCompleted || false)) return;
                     const li = document.createElement('li');
                     li.className = 'task';
                     if (!window.isArchiveMode) li.dataset.id = task.id; 
                     
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'task-content';
-
                     const topRow = document.createElement('div');
                     topRow.className = 'task-top-row';
-
-                    if (task.isPriority && !window.isArchiveMode) {
-                        const flagSpan = document.createElement('span');
-                        flagSpan.className = 'priority-flag';
-                        flagSpan.innerHTML = '🚩';
-                        topRow.appendChild(flagSpan);
-                    }
-
-                    const textSpan = document.createElement('span');
-                    textSpan.className = 'task-text';
-                    textSpan.textContent = task.text;
-                    if (window.isArchiveMode) textSpan.style.textDecoration = "line-through";
-                    topRow.appendChild(textSpan);
-                    
-                    // NEW: Note icon if there is subtext
-                    if (task.details && task.details.trim() !== "" && !window.isArchiveMode) {
-                        const noteSpan = document.createElement('span');
-                        noteSpan.innerHTML = ' 📝';
-                        noteSpan.style.opacity = '0.5';
-                        noteSpan.style.fontSize = '0.9rem';
-                        topRow.appendChild(noteSpan);
-                    }
-
+                    if (task.isPriority && !window.isArchiveMode) topRow.innerHTML += '<span class="priority-flag">🚩</span>';
+                    topRow.innerHTML += `<span class="task-text">${task.text}</span>` + (task.details && !window.isArchiveMode ? '<span style="opacity:0.5; font-size:0.9rem;"> 📝</span>' : '');
                     contentDiv.appendChild(topRow);
-
-                    if (window.isArchiveMode && task.completedAt) {
-                        const metaDiv = document.createElement('div');
-                        metaDiv.className = 'archive-meta';
-                        metaDiv.textContent = `Completed ${formatDate(task.completedAt)} by ${task.completedBy}`;
-                        contentDiv.appendChild(metaDiv);
-                    }
+                    if (window.isArchiveMode && task.completedAt) contentDiv.innerHTML += `<div class="archive-meta">Completed ${formatDate(task.completedAt)} by ${task.completedBy}</div>`;
 
                     const actionsDiv = document.createElement('div');
                     actionsDiv.className = 'task-actions';
-
                     if (!window.isArchiveMode) {
-                        const completeBtn = document.createElement('button');
-                        completeBtn.className = 'action-btn btn-complete'; completeBtn.innerHTML = '✓';
-                        completeBtn.onclick = (e) => window.completeTask(listType, task.id, e);
-                        
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.className = 'action-btn btn-delete'; deleteBtn.innerHTML = '×';
-                        deleteBtn.onclick = (e) => { e.stopPropagation(); window.deleteTask(listType, task.id); };
-
-                        actionsDiv.appendChild(completeBtn); actionsDiv.appendChild(deleteBtn);
+                        actionsDiv.innerHTML = `<button class="action-btn btn-complete" onclick="completeTask('${listType}','${task.id}',event)">✓</button><button class="action-btn btn-delete" onclick="deleteTask('${listType}','${task.id}')">×</button>`;
                         li.addEventListener('dblclick', () => window.openModal(listType, task));
                     } else {
-                        const undoBtn = document.createElement('button');
-                        undoBtn.className = 'action-btn btn-undo'; undoBtn.innerHTML = '⟲';
-                        undoBtn.onclick = (e) => { e.stopPropagation(); window.undoTask(listType, task.id); };
-                        actionsDiv.appendChild(undoBtn);
+                        actionsDiv.innerHTML = `<button class="action-btn btn-undo" onclick="undoTask('${listType}','${task.id}')">⟲</button>`;
                     }
-
                     li.appendChild(contentDiv); li.appendChild(actionsDiv); ul.appendChild(li);
                 });
             });
         }
 
-        window.addTask = function(listType) {
-            const input = document.getElementById(`${listType}-input`);
-            const text = input.value.trim();
-            if (text === "") return;
-
-            const newTask = {
-                id: Date.now().toString(),
-                text: text, details: "", isPriority: false, isCompleted: false,
-                created: new Date().toISOString(), edited: null, completedAt: null, completedBy: null
-            };
-
-            window.lists[listType].push(newTask);
-            input.value = "";
-            window.saveToCloud(); 
+        window.addTask = function(l) {
+            const input = document.getElementById(l+'-input');
+            if (input.value.trim() === "") return;
+            window.lists[l].push({id: Date.now().toString(), text: input.value.trim(), details: "", isPriority: false, isCompleted: false, created: new Date().toISOString()});
+            input.value = ""; window.saveToCloud();
         }
 
-        window.completeTask = function(listType, id, event) {
-            event.stopPropagation();
-            let completedBy = "Unknown";
-            if (listType === 'my') completedBy = "Me";
-            if (listType === 'her') completedBy = "Her";
-            if (listType === 'joint') {
-                const answer = prompt("Who completed this joint task? (Me/Her)", "Me");
-                if (answer === null) return; 
-                completedBy = answer || "Joint";
-            }
-
-            const taskIndex = window.lists[listType].findIndex(t => t.id === id);
-            if (taskIndex !== -1) {
-                window.lists[listType][taskIndex].isCompleted = true;
-                window.lists[listType][taskIndex].completedAt = new Date().toISOString();
-                window.lists[listType][taskIndex].completedBy = completedBy;
-                window.saveToCloud();
-            }
-        }
-
-        window.undoTask = function(listType, id) {
-            const taskIndex = window.lists[listType].findIndex(t => t.id === id);
-            if (taskIndex !== -1) {
-                window.lists[listType][taskIndex].isCompleted = false;
-                window.lists[listType][taskIndex].completedAt = null;
-                window.lists[listType][taskIndex].completedBy = null;
-                window.saveToCloud();
-            }
-        }
-
-        window.deleteTask = function(listType, id) {
-            window.lists[listType] = window.lists[listType].filter(task => task.id !== id);
+        window.completeTask = function(l, id, e) {
+            e.stopPropagation();
+            let by = (l === 'my' ? "Me" : (l === 'her' ? "Her" : prompt("Who completed this?", "Me")));
+            const t = window.lists[l].find(x => x.id === id);
+            t.isCompleted = true; t.completedAt = new Date().toISOString(); t.completedBy = by || "Joint";
             window.saveToCloud();
         }
 
-        window.openModal = function(listType, task) {
-            window.currentActiveTask = { listType, task };
-            document.getElementById('modalTaskText').value = task.text;
-            document.getElementById('modalDetails').value = task.details || "";
-            document.getElementById('modalPriority').checked = task.isPriority || false;
-            document.getElementById('modalCreated').textContent = "Created: " + formatDate(task.created);
-            document.getElementById('modalEdited').textContent = "Last edited: " + formatDate(task.edited);
+        window.undoTask = function(l, id) {
+            const t = window.lists[l].find(x => x.id === id);
+            t.isCompleted = false; t.completedAt = null; t.completedBy = null;
+            window.saveToCloud();
+        }
+
+        window.deleteTask = function(l, id) { window.lists[l] = window.lists[l].filter(x => x.id !== id); window.saveToCloud(); }
+
+        window.openModal = function(l, t) {
+            window.currentActiveTask = { listType: l, task: t };
+            document.getElementById('modalTaskText').value = t.text;
+            document.getElementById('modalDetails').value = t.details || "";
+            document.getElementById('modalPriority').checked = t.isPriority || false;
+            document.getElementById('modalCreated').textContent = "Created: " + formatDate(t.created);
+            document.getElementById('modalEdited').textContent = "Last edited: " + formatDate(t.edited);
             document.getElementById('modalOverlay').style.display = 'flex';
         }
 
-        window.closeModal = function() {
-            document.getElementById('modalOverlay').style.display = 'none';
-            window.currentActiveTask = null;
-        }
+        window.closeModal = function() { document.getElementById('modalOverlay').style.display = 'none'; }
 
         window.saveTaskDetails = function() {
-            if (!window.currentActiveTask) return;
-
             const { listType, task } = window.currentActiveTask;
+            const t = window.lists[listType].find(x => x.id === task.id);
             const newText = document.getElementById('modalTaskText').value.trim();
-            const newDetails = document.getElementById('modalDetails').value;
-            const newPriority = document.getElementById('modalPriority').checked;
-            
-            if (newText === "") { alert("Task name cannot be empty."); return; }
-
-            const taskIndex = window.lists[listType].findIndex(t => t.id === task.id);
-            if (taskIndex !== -1) {
-                // Check if properties actually changed before applying the new timestamp
-                const oldText = window.lists[listType][taskIndex].text;
-                const oldDetails = window.lists[listType][taskIndex].details;
-                const oldPriority = window.lists[listType][taskIndex].isPriority;
-
-                window.lists[listType][taskIndex].text = newText;
-                window.lists[listType][taskIndex].details = newDetails;
-                window.lists[listType][taskIndex].isPriority = newPriority;
-                
-                if (newText !== oldText || newDetails !== oldDetails || newPriority !== oldPriority) {
-                    window.lists[listType][taskIndex].edited = new Date().toISOString();
-                }
-                
-                window.saveToCloud();
+            if (newText === "") return alert("Cannot be empty");
+            if (newText !== t.text || document.getElementById('modalDetails').value !== t.details || document.getElementById('modalPriority').checked !== t.isPriority) {
+                t.text = newText; t.details = document.getElementById('modalDetails').value; t.isPriority = document.getElementById('modalPriority').checked; t.edited = new Date().toISOString();
             }
-            window.closeModal();
+            window.saveToCloud(); window.closeModal();
         }
 
-        // ========================================================
-        // 4. INITIALIZE DRAG AND DROP
-        // ========================================================
-        ['my', 'joint', 'her'].forEach(listType => {
-            const listElement = document.getElementById(`${listType}-list`);
-            window.sortableInstances[listType] = new Sortable(listElement, {
-                animation: 150, delay: 200, delayOnTouchOnly: true, 
-                onEnd: function (evt) {
-                    const taskList = window.lists[listType];
-                    const activeTasks = taskList.filter(t => !t.isCompleted);
-                    const movedTaskId = evt.item.dataset.id;
-                    
-                    const oldMainIndex = taskList.findIndex(t => t.id === movedTaskId);
-                    const movedTask = taskList.splice(oldMainIndex, 1)[0];
-                    
-                    let newMainIndex;
-                    if (evt.newIndex === 0) {
-                        newMainIndex = 0;
-                    } else {
-                        const previousVisibleTask = activeTasks[evt.newIndex > evt.oldIndex ? evt.newIndex : evt.newIndex - 1];
-                        newMainIndex = taskList.findIndex(t => t.id === previousVisibleTask.id) + 1;
-                    }
-                    
-                    taskList.splice(newMainIndex, 0, movedTask);
-                    window.saveToCloud(); 
+        ['my', 'joint', 'her'].forEach(l => {
+            window.sortableInstances[l] = new Sortable(document.getElementById(l+'-list'), {
+                animation: 150, delay: 200, delayOnTouchOnly: true,
+                onEnd: function (e) {
+                    const lType = l; const list = window.lists[lType];
+                    const item = list.splice(e.oldIndex, 1)[0];
+                    list.splice(e.newIndex, 0, item);
+                    window.saveToCloud();
                 }
             });
+            document.getElementById(l+'-input').addEventListener('keypress', function(e) { if(e.key === 'Enter') { window.addTask(l); this.blur(); } });
         });
 
-        // ========================================================
-        // 5. EVENT LISTENERS
-        // ========================================================
-        ['my', 'joint', 'her'].forEach(listType => {
-            document.getElementById(`${listType}-input`).addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') { window.addTask(listType); this.blur(); }
-            });
-        });
-
-        // Initial render pulling from local storage
         window.renderLists();
-
     </script>
 </body>
 </html>
