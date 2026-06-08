@@ -59,11 +59,21 @@
 
         /* Task Lists */
         ul { list-style: none; overflow-y: auto; flex: 1; padding-bottom: 50px; }
+        
         .task {
             padding: 15px; margin-bottom: 10px; border-radius: 8px;
             display: flex; justify-content: space-between; align-items: center;
             cursor: grab; user-select: none; touch-action: manipulation; 
+            /* Added smooth transitions for fading out */
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
+        
+        /* The class applied right before deletion/completion */
+        .task.fading-out {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
         .task:active { cursor: grabbing; }
         .sortable-ghost { opacity: 0.4; }
         .sortable-drag { box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
@@ -76,7 +86,8 @@
 
         /* Action Buttons */
         .task-actions { display: flex; gap: 10px; align-items: center; }
-        .action-btn { background: transparent; border: none; font-size: 1.3rem; cursor: pointer; opacity: 0.5; padding: 5px; }
+        .action-btn { background: transparent; border: none; font-size: 1.3rem; cursor: pointer; opacity: 0.5; padding: 5px; transition: opacity 0.2s; }
+        .action-btn:active { opacity: 1; }
         .btn-complete { color: #2ecc71; font-weight: bold; }
         .btn-delete { color: #e74c3c; font-size: 1.6rem; }
         .btn-undo { color: #f39c12; font-size: 1.4rem; }
@@ -117,6 +128,14 @@
             font-weight: bold; outline: none; margin-bottom: 5px; transition: border-color 0.2s;
         }
         #modalTaskText:focus { border-color: #4a90e2; }
+        
+        .modal-select {
+            width: 100%; padding: 10px; background: #111; color: #fff;
+            border: 1px solid #444; border-radius: 8px; font-size: 1rem;
+            outline: none; cursor: pointer; transition: border-color 0.2s;
+        }
+        .modal-select:focus { border-color: #4a90e2; }
+
         .priority-toggle { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; margin-top: -5px; margin-bottom: 5px; color: #ff4d4d; font-weight: bold; }
         .priority-toggle input { width: 20px; height: 20px; cursor: pointer; accent-color: #ff4d4d; }
         .modal textarea {
@@ -135,7 +154,7 @@
 </head>
 <body>
 
-    <button id="archive-toggle" onclick="toggleArchive()">Archive</button>
+    <button id="archive-toggle">Archive</button>
 
     <div class="swipe-container" id="main-container">
         <div class="layer" id="layer-my">
@@ -145,7 +164,7 @@
             </div>
             <div class="input-group" id="input-my">
                 <input type="text" id="my-input" placeholder="Add to my list...">
-                <button onclick="addTask('my')">Add</button>
+                <button id="btn-add-my">Add</button>
             </div>
             <ul id="my-list"></ul>
         </div>
@@ -156,7 +175,7 @@
             </div>
             <div class="input-group" id="input-joint">
                 <input type="text" id="joint-input" placeholder="Add to joint list...">
-                <button onclick="addTask('joint')">Add</button>
+                <button id="btn-add-joint">Add</button>
             </div>
             <ul id="joint-list"></ul>
         </div>
@@ -167,7 +186,7 @@
             </div>
             <div class="input-group" id="input-her">
                 <input type="text" id="her-input" placeholder="Add to her list...">
-                <button onclick="addTask('her')">Add</button>
+                <button id="btn-add-her">Add</button>
             </div>
             <ul id="her-list"></ul>
         </div>
@@ -176,6 +195,13 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <input type="text" id="modalTaskText" placeholder="Task Name">
+            
+            <select id="modalListSelect" class="modal-select">
+                <option value="my">My List</option>
+                <option value="joint">Joint List</option>
+                <option value="her">Her List</option>
+            </select>
+
             <label class="priority-toggle">
                 <input type="checkbox" id="modalPriority">
                 🚩 Mark as Priority
@@ -186,8 +212,8 @@
                 <span id="modalEdited"></span>
             </div>
             <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-                <button class="btn-save" onclick="saveTaskDetails()">Save</button>
+                <button class="btn-cancel" id="modal-cancel-btn">Cancel</button>
+                <button class="btn-save" id="modal-save-btn">Save</button>
             </div>
         </div>
     </div>
@@ -247,19 +273,23 @@
         }
 
         window.saveToCloud = function() {
-            localStorage.setItem('familyTasks', JSON.stringify(window.lists));
-            if (db && tasksDocRef) {
-                document.getElementById('sync-status').textContent = "Saving...";
-                document.getElementById('sync-status').style.color = "#f39c12";
-                setDoc(tasksDocRef, window.lists).then(() => {
-                    document.getElementById('sync-status').textContent = "Synced with Cloud ✓";
-                    document.getElementById('sync-status').style.color = "#2ecc71";
-                }).catch(err => {
-                    document.getElementById('sync-status').textContent = "Save Failed: Check Rules!";
-                    document.getElementById('sync-status').style.color = "#e74c3c";
-                });
+            try {
+                localStorage.setItem('familyTasks', JSON.stringify(window.lists));
+                if (db && tasksDocRef) {
+                    document.getElementById('sync-status').textContent = "Saving...";
+                    document.getElementById('sync-status').style.color = "#f39c12";
+                    setDoc(tasksDocRef, window.lists).then(() => {
+                        document.getElementById('sync-status').textContent = "Synced with Cloud ✓";
+                        document.getElementById('sync-status').style.color = "#2ecc71";
+                    }).catch(err => {
+                        document.getElementById('sync-status').textContent = "Save Failed: Check Rules!";
+                        document.getElementById('sync-status').style.color = "#e74c3c";
+                    });
+                }
+                window.renderLists();
+            } catch (error) {
+                console.error("Local save error:", error);
             }
-            window.renderLists();
         }
 
         function formatDate(d) { return d ? new Date(d).toLocaleDateString() + ' at ' + new Date(d).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Never"; }
@@ -305,10 +335,32 @@
                     const actionsDiv = document.createElement('div');
                     actionsDiv.className = 'task-actions';
                     if (!window.isArchiveMode) {
-                        actionsDiv.innerHTML = `<button class="action-btn btn-complete" onclick="completeTask('${listType}','${task.id}',event)">✓</button><button class="action-btn btn-delete" onclick="deleteTask('${listType}','${task.id}')">×</button>`;
+                        
+                        const completeBtn = document.createElement('button');
+                        completeBtn.className = 'action-btn btn-complete'; completeBtn.innerHTML = '✓';
+                        completeBtn.addEventListener('click', function(e) { 
+                            e.stopPropagation(); 
+                            window.completeTask(listType, task.id, this); 
+                        });
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'action-btn btn-delete'; deleteBtn.innerHTML = '×';
+                        deleteBtn.addEventListener('click', function(e) { 
+                            e.stopPropagation(); 
+                            window.deleteTask(listType, task.id, this); 
+                        });
+
+                        actionsDiv.appendChild(completeBtn); 
+                        actionsDiv.appendChild(deleteBtn);
                         li.addEventListener('dblclick', () => window.openModal(listType, task));
                     } else {
-                        actionsDiv.innerHTML = `<button class="action-btn btn-undo" onclick="undoTask('${listType}','${task.id}')">⟲</button>`;
+                        const undoBtn = document.createElement('button');
+                        undoBtn.className = 'action-btn btn-undo'; undoBtn.innerHTML = '⟲';
+                        undoBtn.addEventListener('click', function(e) { 
+                            e.stopPropagation(); 
+                            window.undoTask(listType, task.id, this); 
+                        });
+                        actionsDiv.appendChild(undoBtn);
                     }
                     li.appendChild(contentDiv); li.appendChild(actionsDiv); ul.appendChild(li);
                 });
@@ -322,25 +374,52 @@
             input.value = ""; window.saveToCloud();
         }
 
-        window.completeTask = function(l, id, e) {
-            e.stopPropagation();
+        // Updated with fade-out delay
+        window.completeTask = function(l, id, btnElement) {
             let by = (l === 'my' ? "Me" : (l === 'her' ? "Her" : prompt("Who completed this?", "Me")));
-            const t = window.lists[l].find(x => x.id === id);
-            t.isCompleted = true; t.completedAt = new Date().toISOString(); t.completedBy = by || "Joint";
-            window.saveToCloud();
+            if (!by && l === 'joint') return; // Handles prompt cancel
+            
+            const taskEl = btnElement.closest('.task');
+            if (taskEl) taskEl.classList.add('fading-out');
+
+            setTimeout(() => {
+                const t = window.lists[l].find(x => x.id === id);
+                if(t) {
+                    t.isCompleted = true; t.completedAt = new Date().toISOString(); t.completedBy = by;
+                    window.saveToCloud();
+                }
+            }, 300);
         }
 
-        window.undoTask = function(l, id) {
-            const t = window.lists[l].find(x => x.id === id);
-            t.isCompleted = false; t.completedAt = null; t.completedBy = null;
-            window.saveToCloud();
+        // Updated with fade-out delay
+        window.deleteTask = function(l, id, btnElement) { 
+            const taskEl = btnElement.closest('.task');
+            if (taskEl) taskEl.classList.add('fading-out');
+
+            setTimeout(() => {
+                window.lists[l] = window.lists[l].filter(x => x.id !== id); 
+                window.saveToCloud(); 
+            }, 300);
         }
 
-        window.deleteTask = function(l, id) { window.lists[l] = window.lists[l].filter(x => x.id !== id); window.saveToCloud(); }
+        // Updated with fade-out delay
+        window.undoTask = function(l, id, btnElement) {
+            const taskEl = btnElement.closest('.task');
+            if (taskEl) taskEl.classList.add('fading-out');
+
+            setTimeout(() => {
+                const t = window.lists[l].find(x => x.id === id);
+                if(t) {
+                    t.isCompleted = false; t.completedAt = null; t.completedBy = null;
+                    window.saveToCloud();
+                }
+            }, 300);
+        }
 
         window.openModal = function(l, t) {
             window.currentActiveTask = { listType: l, task: t };
             document.getElementById('modalTaskText').value = t.text;
+            document.getElementById('modalListSelect').value = l; // Set the dropdown to current list
             document.getElementById('modalDetails').value = t.details || "";
             document.getElementById('modalPriority').checked = t.isPriority || false;
             document.getElementById('modalCreated').textContent = "Created: " + formatDate(t.created);
@@ -348,18 +427,71 @@
             document.getElementById('modalOverlay').style.display = 'flex';
         }
 
-        window.closeModal = function() { document.getElementById('modalOverlay').style.display = 'none'; }
+        window.closeModal = function() { 
+            document.getElementById('modalOverlay').style.display = 'none'; 
+            window.currentActiveTask = null;
+        }
 
         window.saveTaskDetails = function() {
-            const { listType, task } = window.currentActiveTask;
-            const t = window.lists[listType].find(x => x.id === task.id);
-            const newText = document.getElementById('modalTaskText').value.trim();
-            if (newText === "") return alert("Cannot be empty");
-            if (newText !== t.text || document.getElementById('modalDetails').value !== t.details || document.getElementById('modalPriority').checked !== t.isPriority) {
-                t.text = newText; t.details = document.getElementById('modalDetails').value; t.isPriority = document.getElementById('modalPriority').checked; t.edited = new Date().toISOString();
+            if (!window.currentActiveTask) {
+                window.closeModal();
+                return;
             }
-            window.saveToCloud(); window.closeModal();
+
+            const oldListType = window.currentActiveTask.listType;
+            const taskId = window.currentActiveTask.task.id;
+            const taskIndex = window.lists[oldListType].findIndex(x => x.id === taskId);
+            
+            if (taskIndex === -1) {
+                alert("Error: Could not locate this task.");
+                window.closeModal();
+                return;
+            }
+
+            const newText = document.getElementById('modalTaskText').value.trim();
+            const newDetails = document.getElementById('modalDetails').value;
+            const newPriority = document.getElementById('modalPriority').checked;
+            const newListType = document.getElementById('modalListSelect').value;
+            
+            if (newText === "") {
+                alert("Task Name cannot be empty.");
+                return;
+            }
+
+            const taskToUpdate = window.lists[oldListType][taskIndex];
+            let changed = false;
+
+            if (newText !== taskToUpdate.text || newDetails !== taskToUpdate.details || newPriority !== taskToUpdate.isPriority) {
+                taskToUpdate.text = newText;
+                taskToUpdate.details = newDetails;
+                taskToUpdate.isPriority = newPriority;
+                changed = true;
+            }
+
+            // Handle Re-assignment
+            if (oldListType !== newListType) {
+                const movedTask = window.lists[oldListType].splice(taskIndex, 1)[0];
+                movedTask.edited = new Date().toISOString();
+                window.lists[newListType].push(movedTask);
+                window.saveToCloud();
+            } else if (changed) {
+                taskToUpdate.edited = new Date().toISOString();
+                window.saveToCloud();
+            }
+            
+            window.closeModal();
         }
+
+        // ========================================================
+        // EXPLICIT HARDWIRED EVENT LISTENERS 
+        // ========================================================
+        document.getElementById('archive-toggle').addEventListener('click', window.toggleArchive);
+        document.getElementById('btn-add-my').addEventListener('click', () => window.addTask('my'));
+        document.getElementById('btn-add-joint').addEventListener('click', () => window.addTask('joint'));
+        document.getElementById('btn-add-her').addEventListener('click', () => window.addTask('her'));
+        
+        document.getElementById('modal-cancel-btn').addEventListener('click', (e) => { e.preventDefault(); window.closeModal(); });
+        document.getElementById('modal-save-btn').addEventListener('click', (e) => { e.preventDefault(); window.saveTaskDetails(); });
 
         ['my', 'joint', 'her'].forEach(l => {
             window.sortableInstances[l] = new Sortable(document.getElementById(l+'-list'), {
