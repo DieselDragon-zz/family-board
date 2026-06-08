@@ -13,11 +13,9 @@
             padding: 0;
         }
 
-        /* FIXED: Using 100dvh (Dynamic Viewport Height) prevents the bottom from hiding behind mobile navigation bars */
         body, html { 
             width: 100%; 
-            height: 100vh; /* Fallback for older browsers */
-            height: 100dvh; 
+            height: 100vh; height: 100dvh; 
             overflow: hidden; 
         }
 
@@ -32,24 +30,20 @@
 
         /* Swipe Container */
         .swipe-container {
-            display: flex; width: 100vw; 
-            height: 100vh; height: 100dvh;
+            display: flex; width: 100vw; height: 100vh; height: 100dvh;
             overflow-x: auto; overflow-y: hidden;
-            scroll-snap-type: x mandatory; 
-            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
             scrollbar-width: none; -ms-overflow-style: none; 
-            overscroll-behavior-x: none; /* Reduces accidental rubber-banding sensitivity */
+            overscroll-behavior-x: none;
         }
         .swipe-container::-webkit-scrollbar { display: none; }
 
         /* Individual Layers */
         .layer {
-            flex: 0 0 100vw; 
-            height: 100vh; height: 100dvh; 
-            scroll-snap-align: start;
-            scroll-snap-stop: always; /* Creates a "hard lock" to prevent easily swiping past a screen */
+            flex: 0 0 100vw; height: 100vh; height: 100dvh; scroll-snap-align: start;
+            scroll-snap-stop: always;
             display: flex; flex-direction: column; padding: 20px; padding-top: 40px; 
-            padding-bottom: 30px; /* Extra breathing room at the base of the app */
+            padding-bottom: 30px;
         }
 
         .layer-header { text-align: center; margin-bottom: 20px; }
@@ -58,20 +52,20 @@
 
         /* Input Area */
         .input-group {
-            display: flex; margin-bottom: 20px; gap: 10px; transition: opacity 0.3s, height 0.3s;
+            display: flex; margin-bottom: 20px; gap: 8px; transition: opacity 0.3s, height 0.3s;
         }
         .input-group.hidden { display: none; }
         .input-group input {
             flex: 1; padding: 15px; border-radius: 8px;
-            font-size: 16px; outline: none; border: none;
+            font-size: 16px; outline: none; border: none; min-width: 0;
         }
         .input-group button {
-            padding: 15px 20px; border: none; border-radius: 8px;
+            padding: 15px 18px; border: none; border-radius: 8px;
             font-weight: bold; font-size: 16px; cursor: pointer;
         }
+        .btn-folder-add { background-color: #55606e !important; padding: 15px 12px !important; }
 
         /* Task Lists */
-        /* FIXED: Added a massive 100px pad to the bottom so the final item always rests above the bottom of the screen */
         ul { list-style: none; overflow-y: auto; flex: 1; padding-bottom: 100px; }
         
         .task {
@@ -81,12 +75,23 @@
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
         
-        .task.fading-out {
-            opacity: 0;
-            transform: scale(0.95);
+        /* Folders */
+        .folder-container {
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
+        .folder-header { margin-bottom: 0; font-weight: bold; }
+        .folder-list {
+            padding-left: 15px; padding-right: 5px; padding-top: 10px; padding-bottom: 5px;
+            min-height: 25px; /* Drop target zone */
+            border-left: 2px solid rgba(0,0,0,0.1); margin-left: 15px; margin-bottom: 10px;
+            overflow-y: visible; flex: none;
+        }
+        .folder-toggle { cursor: pointer; margin-right: 10px; font-size: 0.9rem; opacity: 0.7; display: inline-block; width: 15px;}
 
-        .task:active { cursor: grabbing; }
+        .task.fading-out, .folder-container.fading-out { opacity: 0; transform: scale(0.95); }
+        .task:active, .folder-header:active { cursor: grabbing; }
         .sortable-ghost { opacity: 0.4; }
         .sortable-drag { box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
@@ -109,18 +114,26 @@
         #layer-my .input-group input { background: #222; color: #fff; border: 1px solid #444; }
         #layer-my .input-group button { background: #4a90e2; color: #fff; }
         #layer-my .task { background: #1a1a1a; border: 1px solid #333; }
+        #layer-my .folder-container { background: rgba(255,255,255,0.05); }
+        #layer-my .folder-header { background: #2a2a2a; border-color: #444;}
+        #layer-my .folder-list { border-left-color: rgba(255,255,255,0.2); }
 
         #layer-joint { background-color: #333333; color: #cccccc; }
         #layer-joint .input-group input { background: #222; color: #ccc; border: 1px solid #555; }
         #layer-joint .input-group button { background: #4a90e2; color: #fff; }
         #layer-joint .task { background: #444; border: 1px solid #555; }
+        #layer-joint .folder-container { background: rgba(0,0,0,0.2); }
+        #layer-joint .folder-header { background: #3a3a3a; border-color: #555; }
+        #layer-joint .folder-list { border-left-color: rgba(255,255,255,0.1); }
 
         #layer-her { background-color: #ffffff; color: #000000; }
         #layer-her .input-group input { background: #f0f0f0; color: #000; border: 1px solid #ccc; }
         #layer-her .input-group button { background: #4a90e2; color: #fff; }
         #layer-her .task { background: #f9f9f9; border: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-
-        .archive-mode .task { opacity: 0.8; }
+        #layer-her .folder-container { background: rgba(0,0,0,0.02); border: 1px solid #eee;}
+        #layer-her .folder-header { background: #f0f4f8; border: none; }
+        
+        .archive-mode .task, .archive-mode .folder-header { opacity: 0.8; }
         .archive-mode .layer-header h2 { color: #a0a0a0; }
 
         /* MODAL (POPUP) */
@@ -140,7 +153,6 @@
             font-weight: bold; outline: none; margin-bottom: 5px; transition: border-color 0.2s;
         }
         #modalTaskText:focus { border-color: #4a90e2; }
-        
         .modal-select {
             width: 100%; padding: 10px; background: #111; color: #fff;
             border: 1px solid #444; border-radius: 8px; font-size: 1rem;
@@ -159,8 +171,6 @@
         .modal-actions button { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; }
         .btn-cancel { background: #444; color: #fff; }
         .btn-save { background: #4a90e2; color: #fff; }
-
-        /* Sync Indicator */
         #sync-status { position: fixed; bottom: 10px; right: 10px; font-size: 0.75rem; color: #888; font-weight: bold; }
     </style>
 </head>
@@ -177,9 +187,11 @@
             <div class="input-group" id="input-my">
                 <input type="text" id="my-input" placeholder="Add to my list...">
                 <button id="btn-add-my">Add</button>
+                <button id="btn-folder-my" class="btn-folder-add" title="New Folder">📁</button>
             </div>
             <ul id="my-list"></ul>
         </div>
+        
         <div class="layer" id="layer-joint">
             <div class="layer-header">
                 <h2 id="title-joint">Joint List</h2>
@@ -188,9 +200,11 @@
             <div class="input-group" id="input-joint">
                 <input type="text" id="joint-input" placeholder="Add to joint list...">
                 <button id="btn-add-joint">Add</button>
+                <button id="btn-folder-joint" class="btn-folder-add" title="New Folder">📁</button>
             </div>
             <ul id="joint-list"></ul>
         </div>
+        
         <div class="layer" id="layer-her">
             <div class="layer-header">
                 <h2 id="title-her">Her List</h2>
@@ -199,6 +213,7 @@
             <div class="input-group" id="input-her">
                 <input type="text" id="her-input" placeholder="Add to her list...">
                 <button id="btn-add-her">Add</button>
+                <button id="btn-folder-her" class="btn-folder-add" title="New Folder">📁</button>
             </div>
             <ul id="her-list"></ul>
         </div>
@@ -216,7 +231,7 @@
 
             <label class="priority-toggle">
                 <input type="checkbox" id="modalPriority">
-                🚩 Mark as Priority
+                <span id="modalPriorityLabel">🚩 Mark as Priority</span>
             </label>
             <textarea id="modalDetails" placeholder="Add extra notes or details here..."></textarea>
             <div class="metadata">
@@ -239,7 +254,7 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // ========================================================
-        // YOUR FIREBASE CONFIG
+        // YOUR SECURE FIREBASE CONFIG
         // ========================================================
         const firebaseConfig = {
           apiKey: "AIzaSyDLNWYsMaF9e5pUbwfavFS6T4xI5Gjdygk",
@@ -306,6 +321,20 @@
 
         function formatDate(d) { return d ? new Date(d).toLocaleDateString() + ' at ' + new Date(d).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Never"; }
 
+        // Core Engine Helper: Finds any task or folder, even if deeply nested
+        window.updateTaskData = function(listType, id, callback) {
+            const list = window.lists[listType];
+            let found = list.find(x => x.id === id);
+            if (found) { callback(found, list); return true; }
+            for (let i = 0; i < list.length; i++) {
+                if (list[i].isFolder) {
+                    found = list[i].tasks.find(x => x.id === id);
+                    if (found) { callback(found, list[i].tasks); return true; }
+                }
+            }
+            return false;
+        };
+
         window.toggleArchive = function() {
             window.isArchiveMode = !window.isArchiveMode;
             const btn = document.getElementById('archive-toggle');
@@ -313,69 +342,179 @@
             if (window.isArchiveMode) {
                 btn.classList.add('active'); btn.style.color = '#4a90e2'; container.classList.add('archive-mode');
                 document.getElementById('title-my').textContent = "My Archive"; document.getElementById('title-joint').textContent = "Joint Archive"; document.getElementById('title-her').textContent = "Her Archive";
-                ['my', 'joint', 'her'].forEach(list => { document.getElementById(`input-${list}`).classList.add('hidden'); if(window.sortableInstances[list]) window.sortableInstances[list].option("disabled", true); });
+                ['my', 'joint', 'her'].forEach(l => { document.getElementById(`input-${l}`).classList.add('hidden'); });
             } else {
                 btn.classList.remove('active'); btn.style.color = '#888'; container.classList.remove('archive-mode');
                 document.getElementById('title-my').textContent = "My List"; document.getElementById('title-joint').textContent = "Joint List"; document.getElementById('title-her').textContent = "Her List";
-                ['my', 'joint', 'her'].forEach(list => { document.getElementById(`input-${list}`).classList.remove('hidden'); if(window.sortableInstances[list]) window.sortableInstances[list].option("disabled", false); });
+                ['my', 'joint', 'her'].forEach(l => { document.getElementById(`input-${l}`).classList.remove('hidden'); });
             }
             window.renderLists();
         }
 
+        // DRY Helper to build the visual DOM for tasks
+        function createTaskElement(item, listType, isFolderContext = false) {
+            if (!item) return null;
+            if (item.isFolder) return null; // Handled separately
+            if (window.isArchiveMode !== (item.isCompleted || false)) return null;
+
+            const li = document.createElement('li');
+            li.className = 'task';
+            if (!window.isArchiveMode) li.dataset.id = item.id; 
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'task-content';
+            const topRow = document.createElement('div');
+            topRow.className = 'task-top-row';
+            
+            if (item.isPriority && !window.isArchiveMode) topRow.innerHTML += '<span class="priority-flag">🚩</span>';
+            topRow.innerHTML += `<span class="task-text">${item.text}</span>` + (item.details && !window.isArchiveMode ? '<span style="opacity:0.5; font-size:0.9rem;"> 📝</span>' : '');
+            contentDiv.appendChild(topRow);
+            
+            if (window.isArchiveMode && item.completedAt) contentDiv.innerHTML += `<div class="archive-meta">Completed ${formatDate(item.completedAt)} by ${item.completedBy}</div>`;
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'task-actions';
+            if (!window.isArchiveMode) {
+                const completeBtn = document.createElement('button');
+                completeBtn.className = 'action-btn btn-complete'; completeBtn.innerHTML = '✓';
+                completeBtn.addEventListener('click', function(e) { e.stopPropagation(); window.completeTask(listType, item.id, this); });
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'action-btn btn-delete'; deleteBtn.innerHTML = '×';
+                deleteBtn.addEventListener('click', function(e) { e.stopPropagation(); window.deleteTask(listType, item.id, this); });
+
+                actionsDiv.appendChild(completeBtn); actionsDiv.appendChild(deleteBtn);
+                li.addEventListener('dblclick', () => window.openModal(listType, item));
+            } else {
+                const undoBtn = document.createElement('button');
+                undoBtn.className = 'action-btn btn-undo'; undoBtn.innerHTML = '⟲';
+                undoBtn.addEventListener('click', function(e) { e.stopPropagation(); window.undoTask(listType, item.id, this); });
+                actionsDiv.appendChild(undoBtn);
+            }
+            li.appendChild(contentDiv); li.appendChild(actionsDiv);
+            return li;
+        }
+
         window.renderLists = function() {
+            // Clean up Sortable instances to prevent memory leaks
+            Object.values(window.sortableInstances).forEach(s => s.destroy());
+            window.sortableInstances = {};
+
             ['my', 'joint', 'her'].forEach(listType => {
-                const ul = document.getElementById(`${listType}-list`);
-                ul.innerHTML = ''; 
+                const rootUl = document.getElementById(`${listType}-list`);
+                rootUl.innerHTML = ''; 
+                rootUl.dataset.list = listType;
+                rootUl.dataset.folder = 'root';
+
                 if(!window.lists[listType]) window.lists[listType] = [];
                 window.lists[listType].sort((a, b) => (a.isPriority ? -1 : 1) - (b.isPriority ? -1 : 1));
                 
-                window.lists[listType].forEach(task => {
-                    if (window.isArchiveMode !== (task.isCompleted || false)) return;
-                    const li = document.createElement('li');
-                    li.className = 'task';
-                    if (!window.isArchiveMode) li.dataset.id = task.id; 
-                    
-                    const contentDiv = document.createElement('div');
-                    contentDiv.className = 'task-content';
-                    const topRow = document.createElement('div');
-                    topRow.className = 'task-top-row';
-                    if (task.isPriority && !window.isArchiveMode) topRow.innerHTML += '<span class="priority-flag">🚩</span>';
-                    topRow.innerHTML += `<span class="task-text">${task.text}</span>` + (task.details && !window.isArchiveMode ? '<span style="opacity:0.5; font-size:0.9rem;"> 📝</span>' : '');
-                    contentDiv.appendChild(topRow);
-                    if (window.isArchiveMode && task.completedAt) contentDiv.innerHTML += `<div class="archive-meta">Completed ${formatDate(task.completedAt)} by ${task.completedBy}</div>`;
-
-                    const actionsDiv = document.createElement('div');
-                    actionsDiv.className = 'task-actions';
-                    if (!window.isArchiveMode) {
+                window.lists[listType].forEach(item => {
+                    if (item.isFolder) {
+                        const fContainer = document.createElement('li');
+                        fContainer.className = 'folder-container is-folder';
+                        if (!window.isArchiveMode) fContainer.dataset.id = item.id;
                         
-                        const completeBtn = document.createElement('button');
-                        completeBtn.className = 'action-btn btn-complete'; completeBtn.innerHTML = '✓';
-                        completeBtn.addEventListener('click', function(e) { 
-                            e.stopPropagation(); 
-                            window.completeTask(listType, task.id, this); 
-                        });
+                        const header = document.createElement('div');
+                        header.className = 'task folder-header';
                         
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.className = 'action-btn btn-delete'; deleteBtn.innerHTML = '×';
-                        deleteBtn.addEventListener('click', function(e) { 
-                            e.stopPropagation(); 
-                            window.deleteTask(listType, task.id, this); 
-                        });
+                        const topRow = document.createElement('div');
+                        topRow.className = 'task-top-row';
+                        
+                        const toggleBtn = document.createElement('span');
+                        toggleBtn.className = 'folder-toggle';
+                        toggleBtn.innerHTML = item.isExpanded ? '▼' : '▶';
+                        toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); window.toggleFolder(listType, item.id); });
+                        
+                        const titleSpan = document.createElement('span');
+                        titleSpan.className = 'task-text';
+                        titleSpan.textContent = item.text;
+                        
+                        topRow.appendChild(toggleBtn); topRow.appendChild(titleSpan);
+                        
+                        const contentDiv = document.createElement('div');
+                        contentDiv.className = 'task-content';
+                        contentDiv.appendChild(topRow);
+                        header.appendChild(contentDiv);
+                        
+                        if (!window.isArchiveMode) {
+                            const actionsDiv = document.createElement('div');
+                            actionsDiv.className = 'task-actions';
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.className = 'action-btn btn-delete'; deleteBtn.innerHTML = '×';
+                            deleteBtn.addEventListener('click', function(e) { e.stopPropagation(); window.deleteTask(listType, item.id, this, true); });
+                            actionsDiv.appendChild(deleteBtn);
+                            header.appendChild(actionsDiv);
+                            header.addEventListener('dblclick', () => window.openModal(listType, item));
+                        }
+                        fContainer.appendChild(header);
 
-                        actionsDiv.appendChild(completeBtn); 
-                        actionsDiv.appendChild(deleteBtn);
-                        li.addEventListener('dblclick', () => window.openModal(listType, task));
+                        const nestedUl = document.createElement('ul');
+                        nestedUl.className = 'folder-list';
+                        nestedUl.dataset.list = listType;
+                        nestedUl.dataset.folder = item.id;
+                        if (!item.isExpanded) nestedUl.style.display = 'none';
+
+                        // Sort and render child tasks
+                        if (item.tasks) {
+                            item.tasks.sort((a, b) => (a.isPriority ? -1 : 1) - (b.isPriority ? -1 : 1));
+                            item.tasks.forEach(child => {
+                                const tEl = createTaskElement(child, listType, true);
+                                if (tEl) nestedUl.appendChild(tEl);
+                            });
+                        }
+                        
+                        fContainer.appendChild(nestedUl);
+                        rootUl.appendChild(fContainer);
                     } else {
-                        const undoBtn = document.createElement('button');
-                        undoBtn.className = 'action-btn btn-undo'; undoBtn.innerHTML = '⟲';
-                        undoBtn.addEventListener('click', function(e) { 
-                            e.stopPropagation(); 
-                            window.undoTask(listType, task.id, this); 
-                        });
-                        actionsDiv.appendChild(undoBtn);
+                        const tEl = createTaskElement(item, listType);
+                        if (tEl) rootUl.appendChild(tEl);
                     }
-                    li.appendChild(contentDiv); li.appendChild(actionsDiv); ul.appendChild(li);
                 });
+
+                // Initialize Sortable for Drag and Drop ONLY if not in Archive Mode
+                if (!window.isArchiveMode) {
+                    window.initSortable(rootUl, listType);
+                    const folderUls = rootUl.querySelectorAll('.folder-list');
+                    folderUls.forEach(ul => window.initSortable(ul, listType));
+                }
+            });
+        }
+
+        window.initSortable = function(el, listType) {
+            const isRoot = el.dataset.folder === 'root';
+            window.sortableInstances[`${listType}_${el.dataset.folder}`] = new Sortable(el, {
+                group: {
+                    name: listType, // Only allow drag within the same column
+                    put: function (to, from, dragEl) {
+                        // Smart Rejection: Folders cannot be dropped inside other folders
+                        if (!isRoot && dragEl.classList.contains('is-folder')) return false; 
+                        return true;
+                    }
+                },
+                animation: 150, delay: 200, delayOnTouchOnly: true, fallbackOnBody: true, swapThreshold: 0.65,
+                onEnd: function(evt) {
+                    const toList = evt.to.dataset.list; const toFolder = evt.to.dataset.folder;
+                    const fromFolder = evt.from.dataset.folder; const itemId = evt.item.dataset.id;
+                    
+                    const sourceArray = fromFolder === 'root' ? window.lists[listType] : window.lists[listType].find(f => f.id === fromFolder).tasks;
+                    const destArray = toFolder === 'root' ? window.lists[toList] : window.lists[toList].find(f => f.id === toFolder).tasks;
+
+                    const itemIndex = sourceArray.findIndex(x => x.id === itemId);
+                    if (itemIndex === -1) return;
+                    const movedItem = sourceArray.splice(itemIndex, 1)[0];
+
+                    const nextDomEl = evt.item.nextElementSibling;
+                    if (!nextDomEl) {
+                        destArray.push(movedItem);
+                    } else {
+                        const nextId = nextDomEl.dataset.id;
+                        const insertIndex = destArray.findIndex(x => x.id === nextId);
+                        if (insertIndex !== -1) destArray.splice(insertIndex, 0, movedItem);
+                        else destArray.push(movedItem);
+                    }
+                    window.saveToCloud();
+                }
             });
         }
 
@@ -386,6 +525,21 @@
             input.value = ""; window.saveToCloud();
         }
 
+        window.addFolder = function(l) {
+            const name = prompt("Enter a name for the new folder:");
+            if (!name || name.trim() === "") return;
+            window.lists[l].push({
+                id: 'folder_' + Date.now().toString(), isFolder: true, text: name.trim(), tasks: [],
+                isExpanded: true, created: new Date().toISOString()
+            });
+            window.saveToCloud();
+        }
+
+        window.toggleFolder = function(l, id) {
+            window.updateTaskData(l, id, (item) => { if(item.isFolder) item.isExpanded = !item.isExpanded; });
+            window.saveToCloud();
+        }
+
         window.completeTask = function(l, id, btnElement) {
             let by = (l === 'my' ? "Me" : (l === 'her' ? "Her" : prompt("Who completed this?", "Me")));
             if (!by && l === 'joint') return;
@@ -394,11 +548,10 @@
             if (taskEl) taskEl.classList.add('fading-out');
 
             setTimeout(() => {
-                const t = window.lists[l].find(x => x.id === id);
-                if(t) {
-                    t.isCompleted = true; t.completedAt = new Date().toISOString(); t.completedBy = by;
-                    window.saveToCloud();
-                }
+                window.updateTaskData(l, id, (item) => {
+                    item.isCompleted = true; item.completedAt = new Date().toISOString(); item.completedBy = by;
+                });
+                window.saveToCloud();
             }, 300);
         }
 
@@ -407,32 +560,51 @@
             if (taskEl) taskEl.classList.add('fading-out');
 
             setTimeout(() => {
-                const t = window.lists[l].find(x => x.id === id);
-                if(t) {
-                    t.isCompleted = false; t.completedAt = null; t.completedBy = null;
-                    window.saveToCloud();
-                }
+                window.updateTaskData(l, id, (item) => {
+                    item.isCompleted = false; item.completedAt = null; item.completedBy = null;
+                });
+                window.saveToCloud();
             }, 300);
         }
 
-        window.deleteTask = function(l, id, btnElement) { 
-            const taskEl = btnElement.closest('.task');
-            if (taskEl) taskEl.classList.add('fading-out');
+        window.deleteTask = function(l, id, btnElement, isFolder = false) { 
+            if (isFolder) {
+                let shouldDelete = true;
+                window.updateTaskData(l, id, (item) => {
+                    if (item.tasks && item.tasks.length > 0) {
+                        shouldDelete = confirm(`"${item.text}" contains active tasks. Delete the folder and everything inside it?`);
+                    }
+                });
+                if (!shouldDelete) return;
+            }
+
+            const el = btnElement.closest('.task, .folder-container');
+            if (el) el.classList.add('fading-out');
 
             setTimeout(() => {
-                window.lists[l] = window.lists[l].filter(x => x.id !== id); 
+                window.updateTaskData(l, id, (item, parentArray) => {
+                    const idx = parentArray.findIndex(x => x.id === id);
+                    parentArray.splice(idx, 1);
+                });
                 window.saveToCloud(); 
             }, 300);
         }
 
-        window.openModal = function(l, t) {
-            window.currentActiveTask = { listType: l, task: t };
-            document.getElementById('modalTaskText').value = t.text;
-            document.getElementById('modalListSelect').value = l;
-            document.getElementById('modalDetails').value = t.details || "";
-            document.getElementById('modalPriority').checked = t.isPriority || false;
-            document.getElementById('modalCreated').textContent = "Created: " + formatDate(t.created);
-            document.getElementById('modalEdited').textContent = "Last edited: " + formatDate(t.edited);
+        window.openModal = function(l, item) {
+            window.currentActiveTask = { listType: l, item: item };
+            document.getElementById('modalTaskText').value = item.text;
+            
+            const selectEl = document.getElementById('modalListSelect');
+            selectEl.value = l;
+            selectEl.style.display = item.isFolder ? 'none' : 'block'; // Hide assignment swap for folders to prevent complexity
+
+            document.getElementById('modalDetails').value = item.details || "";
+            document.getElementById('modalPriority').checked = item.isPriority || false;
+            document.getElementById('modalPriority').style.display = item.isFolder ? 'none' : 'inline-block';
+            document.getElementById('modalPriorityLabel').style.display = item.isFolder ? 'none' : 'inline-block';
+            
+            document.getElementById('modalCreated').textContent = "Created: " + formatDate(item.created);
+            document.getElementById('modalEdited').textContent = item.edited ? "Last edited: " + formatDate(item.edited) : "";
             document.getElementById('modalOverlay').style.display = 'flex';
         }
 
@@ -442,50 +614,40 @@
         }
 
         window.saveTaskDetails = function() {
-            if (!window.currentActiveTask) {
-                window.closeModal();
-                return;
-            }
+            if (!window.currentActiveTask) { window.closeModal(); return; }
 
             const oldListType = window.currentActiveTask.listType;
-            const taskId = window.currentActiveTask.task.id;
-            const taskIndex = window.lists[oldListType].findIndex(x => x.id === taskId);
+            const itemId = window.currentActiveTask.item.id;
             
-            if (taskIndex === -1) {
-                alert("Error: Could not locate this task.");
-                window.closeModal();
-                return;
-            }
-
             const newText = document.getElementById('modalTaskText').value.trim();
             const newDetails = document.getElementById('modalDetails').value;
             const newPriority = document.getElementById('modalPriority').checked;
             const newListType = document.getElementById('modalListSelect').value;
             
-            if (newText === "") {
-                alert("Task Name cannot be empty.");
-                return;
-            }
+            if (newText === "") { alert("Name cannot be empty."); return; }
 
-            const taskToUpdate = window.lists[oldListType][taskIndex];
-            let changed = false;
+            window.updateTaskData(oldListType, itemId, (itemToUpdate, parentArray) => {
+                let changed = false;
 
-            if (newText !== taskToUpdate.text || newDetails !== taskToUpdate.details || newPriority !== taskToUpdate.isPriority) {
-                taskToUpdate.text = newText;
-                taskToUpdate.details = newDetails;
-                taskToUpdate.isPriority = newPriority;
-                changed = true;
-            }
+                if (newText !== itemToUpdate.text || newDetails !== itemToUpdate.details || newPriority !== itemToUpdate.isPriority) {
+                    itemToUpdate.text = newText;
+                    itemToUpdate.details = newDetails;
+                    itemToUpdate.isPriority = newPriority;
+                    changed = true;
+                }
 
-            if (oldListType !== newListType) {
-                const movedTask = window.lists[oldListType].splice(taskIndex, 1)[0];
-                movedTask.edited = new Date().toISOString();
-                window.lists[newListType].push(movedTask);
-                window.saveToCloud();
-            } else if (changed) {
-                taskToUpdate.edited = new Date().toISOString();
-                window.saveToCloud();
-            }
+                // If task was re-assigned to a different column
+                if (!itemToUpdate.isFolder && oldListType !== newListType) {
+                    const idx = parentArray.findIndex(x => x.id === itemId);
+                    const movedTask = parentArray.splice(idx, 1)[0];
+                    movedTask.edited = new Date().toISOString();
+                    window.lists[newListType].push(movedTask); // Sends to root of new list
+                    window.saveToCloud();
+                } else if (changed) {
+                    itemToUpdate.edited = new Date().toISOString();
+                    window.saveToCloud();
+                }
+            });
             
             window.closeModal();
         }
@@ -494,25 +656,15 @@
         // EXPLICIT HARDWIRED EVENT LISTENERS 
         // ========================================================
         document.getElementById('archive-toggle').addEventListener('click', window.toggleArchive);
-        document.getElementById('btn-add-my').addEventListener('click', () => window.addTask('my'));
-        document.getElementById('btn-add-joint').addEventListener('click', () => window.addTask('joint'));
-        document.getElementById('btn-add-her').addEventListener('click', () => window.addTask('her'));
+        
+        ['my', 'joint', 'her'].forEach(l => {
+            document.getElementById(`btn-add-${l}`).addEventListener('click', () => window.addTask(l));
+            document.getElementById(`btn-folder-${l}`).addEventListener('click', () => window.addFolder(l));
+            document.getElementById(`${l}-input`).addEventListener('keypress', function(e) { if(e.key === 'Enter') { window.addTask(l); this.blur(); } });
+        });
         
         document.getElementById('modal-cancel-btn').addEventListener('click', (e) => { e.preventDefault(); window.closeModal(); });
         document.getElementById('modal-save-btn').addEventListener('click', (e) => { e.preventDefault(); window.saveTaskDetails(); });
-
-        ['my', 'joint', 'her'].forEach(l => {
-            window.sortableInstances[l] = new Sortable(document.getElementById(l+'-list'), {
-                animation: 150, delay: 200, delayOnTouchOnly: true,
-                onEnd: function (e) {
-                    const lType = l; const list = window.lists[lType];
-                    const item = list.splice(e.oldIndex, 1)[0];
-                    list.splice(e.newIndex, 0, item);
-                    window.saveToCloud();
-                }
-            });
-            document.getElementById(l+'-input').addEventListener('keypress', function(e) { if(e.key === 'Enter') { window.addTask(l); this.blur(); } });
-        });
 
         window.renderLists();
     </script>
