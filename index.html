@@ -13,7 +13,13 @@
             padding: 0;
         }
 
-        body, html { width: 100%; height: 100%; overflow: hidden; }
+        /* FIXED: Using 100dvh (Dynamic Viewport Height) prevents the bottom from hiding behind mobile navigation bars */
+        body, html { 
+            width: 100%; 
+            height: 100vh; /* Fallback for older browsers */
+            height: 100dvh; 
+            overflow: hidden; 
+        }
 
         /* Archive Toggle Button */
         #archive-toggle {
@@ -26,17 +32,24 @@
 
         /* Swipe Container */
         .swipe-container {
-            display: flex; width: 100vw; height: 100vh;
+            display: flex; width: 100vw; 
+            height: 100vh; height: 100dvh;
             overflow-x: auto; overflow-y: hidden;
-            scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory; 
+            -webkit-overflow-scrolling: touch;
             scrollbar-width: none; -ms-overflow-style: none; 
+            overscroll-behavior-x: none; /* Reduces accidental rubber-banding sensitivity */
         }
         .swipe-container::-webkit-scrollbar { display: none; }
 
         /* Individual Layers */
         .layer {
-            flex: 0 0 100vw; height: 100vh; scroll-snap-align: start;
+            flex: 0 0 100vw; 
+            height: 100vh; height: 100dvh; 
+            scroll-snap-align: start;
+            scroll-snap-stop: always; /* Creates a "hard lock" to prevent easily swiping past a screen */
             display: flex; flex-direction: column; padding: 20px; padding-top: 40px; 
+            padding-bottom: 30px; /* Extra breathing room at the base of the app */
         }
 
         .layer-header { text-align: center; margin-bottom: 20px; }
@@ -58,17 +71,16 @@
         }
 
         /* Task Lists */
-        ul { list-style: none; overflow-y: auto; flex: 1; padding-bottom: 50px; }
+        /* FIXED: Added a massive 100px pad to the bottom so the final item always rests above the bottom of the screen */
+        ul { list-style: none; overflow-y: auto; flex: 1; padding-bottom: 100px; }
         
         .task {
             padding: 15px; margin-bottom: 10px; border-radius: 8px;
             display: flex; justify-content: space-between; align-items: center;
             cursor: grab; user-select: none; touch-action: manipulation; 
-            /* Added smooth transitions for fading out */
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
         
-        /* The class applied right before deletion/completion */
         .task.fading-out {
             opacity: 0;
             transform: scale(0.95);
@@ -227,7 +239,7 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // ========================================================
-        // 1. YOUR FIREBASE CONFIG
+        // YOUR FIREBASE CONFIG
         // ========================================================
         const firebaseConfig = {
           apiKey: "AIzaSyDLNWYsMaF9e5pUbwfavFS6T4xI5Gjdygk",
@@ -374,10 +386,9 @@
             input.value = ""; window.saveToCloud();
         }
 
-        // Updated with fade-out delay
         window.completeTask = function(l, id, btnElement) {
             let by = (l === 'my' ? "Me" : (l === 'her' ? "Her" : prompt("Who completed this?", "Me")));
-            if (!by && l === 'joint') return; // Handles prompt cancel
+            if (!by && l === 'joint') return;
             
             const taskEl = btnElement.closest('.task');
             if (taskEl) taskEl.classList.add('fading-out');
@@ -391,18 +402,6 @@
             }, 300);
         }
 
-        // Updated with fade-out delay
-        window.deleteTask = function(l, id, btnElement) { 
-            const taskEl = btnElement.closest('.task');
-            if (taskEl) taskEl.classList.add('fading-out');
-
-            setTimeout(() => {
-                window.lists[l] = window.lists[l].filter(x => x.id !== id); 
-                window.saveToCloud(); 
-            }, 300);
-        }
-
-        // Updated with fade-out delay
         window.undoTask = function(l, id, btnElement) {
             const taskEl = btnElement.closest('.task');
             if (taskEl) taskEl.classList.add('fading-out');
@@ -416,10 +415,20 @@
             }, 300);
         }
 
+        window.deleteTask = function(l, id, btnElement) { 
+            const taskEl = btnElement.closest('.task');
+            if (taskEl) taskEl.classList.add('fading-out');
+
+            setTimeout(() => {
+                window.lists[l] = window.lists[l].filter(x => x.id !== id); 
+                window.saveToCloud(); 
+            }, 300);
+        }
+
         window.openModal = function(l, t) {
             window.currentActiveTask = { listType: l, task: t };
             document.getElementById('modalTaskText').value = t.text;
-            document.getElementById('modalListSelect').value = l; // Set the dropdown to current list
+            document.getElementById('modalListSelect').value = l;
             document.getElementById('modalDetails').value = t.details || "";
             document.getElementById('modalPriority').checked = t.isPriority || false;
             document.getElementById('modalCreated').textContent = "Created: " + formatDate(t.created);
@@ -468,7 +477,6 @@
                 changed = true;
             }
 
-            // Handle Re-assignment
             if (oldListType !== newListType) {
                 const movedTask = window.lists[oldListType].splice(taskIndex, 1)[0];
                 movedTask.edited = new Date().toISOString();
