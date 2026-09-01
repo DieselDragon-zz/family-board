@@ -70,7 +70,7 @@
         
         .task {
             padding: 15px; margin-bottom: 10px; border-radius: 8px;
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: flex-start;
             cursor: grab; user-select: none; touch-action: manipulation; 
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
@@ -81,10 +81,10 @@
             margin-bottom: 10px;
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
-        .folder-header { margin-bottom: 0; font-weight: bold; }
+        .folder-header { margin-bottom: 0; font-weight: bold; align-items: center; }
         .folder-list {
             padding-left: 15px; padding-right: 5px; padding-top: 10px; padding-bottom: 5px;
-            min-height: 25px; /* Drop target zone */
+            min-height: 25px; 
             border-left: 2px solid rgba(0,0,0,0.1); margin-left: 15px; margin-bottom: 10px;
             overflow-y: visible; flex: none;
         }
@@ -95,14 +95,35 @@
         .sortable-ghost { opacity: 0.4; }
         .sortable-drag { box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
-        .task-content { display: flex; flex-direction: column; flex: 1; margin-right: 15px; }
+        .task-content { display: flex; flex-direction: column; flex: 1; margin-right: 15px; min-width: 0; }
         .task-top-row { display: flex; align-items: center; }
         .task-text { word-break: break-word; font-size: 1.1rem; }
         .priority-flag { color: #ff4d4d; margin-right: 10px; font-size: 1.2rem; display: inline-block; }
         .archive-meta { font-size: 0.75rem; margin-top: 5px; opacity: 0.6; font-style: italic; }
 
+        /* Task Notes & Image Preview (Main Board) */
+        .task-details-preview {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 6px;
+            white-space: pre-wrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+        .task-thumbnail {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 6px;
+            margin-top: 10px;
+            object-fit: cover;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
         /* Action Buttons */
-        .task-actions { display: flex; gap: 10px; align-items: center; }
+        .task-actions { display: flex; gap: 10px; align-items: center; padding-top: 2px; }
         .action-btn { background: transparent; border: none; font-size: 1.3rem; cursor: pointer; opacity: 0.5; padding: 5px; transition: opacity 0.2s; }
         .action-btn:active { opacity: 1; }
         .btn-complete { color: #2ecc71; font-weight: bold; }
@@ -143,9 +164,9 @@
             padding: 20px; z-index: 1000;
         }
         .modal {
-            background: #222; color: #fff; width: 100%; max-width: 400px;
+            background: #222; color: #fff; width: 100%; max-width: 450px;
             border-radius: 12px; padding: 25px; display: flex; flex-direction: column;
-            gap: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            gap: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto;
         }
         #modalTaskText {
             width: 100%; padding: 10px; background: #111; color: #fff;
@@ -153,24 +174,45 @@
             font-weight: bold; outline: none; margin-bottom: 5px; transition: border-color 0.2s;
         }
         #modalTaskText:focus { border-color: #4a90e2; }
+        
         .modal-select {
             width: 100%; padding: 10px; background: #111; color: #fff;
             border: 1px solid #444; border-radius: 8px; font-size: 1rem;
             outline: none; cursor: pointer; transition: border-color 0.2s;
         }
-        .modal-select:focus { border-color: #4a90e2; }
-
-        .priority-toggle { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; margin-top: -5px; margin-bottom: 5px; color: #ff4d4d; font-weight: bold; }
+        
+        .priority-toggle { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; margin-top: -5px; color: #ff4d4d; font-weight: bold; }
         .priority-toggle input { width: 20px; height: 20px; cursor: pointer; accent-color: #ff4d4d; }
+        
         .modal textarea {
-            width: 100%; height: 120px; padding: 15px; background: #111; color: #fff;
+            width: 100%; height: 100px; padding: 15px; background: #111; color: #fff;
             border: 1px solid #444; border-radius: 8px; font-size: 16px; resize: none; outline: none;
         }
-        .metadata { font-size: 0.85rem; color: #aaa; display: flex; flex-direction: column; gap: 5px; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+
+        /* Modal Image Controls */
+        .modal-image-controls { display: flex; gap: 10px; }
+        .btn-image-upload {
+            background: #444; color: #fff; padding: 10px 15px; border-radius: 8px;
+            cursor: pointer; font-size: 1rem; text-align: center; flex: 1; font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn-image-upload:hover { background: #555; }
+        #btn-remove-image {
+            background: #e74c3c; color: white; border: none; padding: 10px 15px; 
+            border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold; display: none;
+        }
+        #modalImagePreview {
+            max-width: 100%; max-height: 250px; object-fit: contain; 
+            border-radius: 8px; display: none; background: #111; border: 1px solid #444;
+        }
+
+        .metadata { font-size: 0.85rem; color: #aaa; display: flex; flex-direction: column; gap: 5px; margin-top: 5px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px; }
         .modal-actions button { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; }
         .btn-cancel { background: #444; color: #fff; }
         .btn-save { background: #4a90e2; color: #fff; }
+        .btn-save:disabled { background: #333; color: #888; cursor: not-allowed; }
+        
         #sync-status { position: fixed; bottom: 10px; right: 10px; font-size: 0.75rem; color: #888; font-weight: bold; }
     </style>
 </head>
@@ -179,6 +221,7 @@
     <button id="archive-toggle">Archive</button>
 
     <div class="swipe-container" id="main-container">
+        <!-- LAYER 1: MY LIST -->
         <div class="layer" id="layer-my">
             <div class="layer-header">
                 <h2 id="title-my">My List</h2>
@@ -192,6 +235,7 @@
             <ul id="my-list"></ul>
         </div>
         
+        <!-- LAYER 2: JOINT LIST -->
         <div class="layer" id="layer-joint">
             <div class="layer-header">
                 <h2 id="title-joint">Joint List</h2>
@@ -205,6 +249,7 @@
             <ul id="joint-list"></ul>
         </div>
         
+        <!-- LAYER 3: HER LIST -->
         <div class="layer" id="layer-her">
             <div class="layer-header">
                 <h2 id="title-her">Her List</h2>
@@ -219,6 +264,7 @@
         </div>
     </div>
 
+    <!-- TASK DETAILS MODAL -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <input type="text" id="modalTaskText" placeholder="Task Name">
@@ -233,7 +279,16 @@
                 <input type="checkbox" id="modalPriority">
                 <span id="modalPriorityLabel">🚩 Mark as Priority</span>
             </label>
+            
             <textarea id="modalDetails" placeholder="Add extra notes or details here..."></textarea>
+            
+            <div class="modal-image-controls" id="modalImageControls">
+                <label for="modalImageInput" class="btn-image-upload">📷 Attach Image</label>
+                <input type="file" id="modalImageInput" accept="image/*" style="display: none;">
+                <button type="button" id="btn-remove-image">🗑️ Remove</button>
+            </div>
+            <img id="modalImagePreview">
+
             <div class="metadata">
                 <span id="modalCreated"></span>
                 <span id="modalEdited"></span>
@@ -301,7 +356,16 @@
 
         window.saveToCloud = function() {
             try {
-                localStorage.setItem('familyTasks', JSON.stringify(window.lists));
+                const payloadString = JSON.stringify(window.lists);
+                const sizeKB = Math.round(payloadString.length / 1024);
+                
+                // Firestore document limit is 1024KB. Add a warning buffer.
+                if (sizeKB > 900) {
+                    alert("Warning: Your task board is getting full from images! Please delete some completed tasks to free up space.");
+                }
+
+                localStorage.setItem('familyTasks', payloadString);
+                
                 if (db && tasksDocRef) {
                     document.getElementById('sync-status').textContent = "Saving...";
                     document.getElementById('sync-status').style.color = "#f39c12";
@@ -309,8 +373,10 @@
                         document.getElementById('sync-status').textContent = "Synced with Cloud ✓";
                         document.getElementById('sync-status').style.color = "#2ecc71";
                     }).catch(err => {
-                        document.getElementById('sync-status').textContent = "Save Failed: Check Rules!";
+                        console.error(err);
+                        document.getElementById('sync-status').textContent = "Save Failed: Size limit or Network.";
                         document.getElementById('sync-status').style.color = "#e74c3c";
+                        if (err.code === 'resource-exhausted') alert("Error: Board is too large. Remove images to save successfully.");
                     });
                 }
                 window.renderLists();
@@ -321,7 +387,6 @@
 
         function formatDate(d) { return d ? new Date(d).toLocaleDateString() + ' at ' + new Date(d).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Never"; }
 
-        // Core Engine Helper: Finds any task or folder, even if deeply nested
         window.updateTaskData = function(listType, id, callback) {
             const list = window.lists[listType];
             let found = list.find(x => x.id === id);
@@ -354,7 +419,7 @@
         // DRY Helper to build the visual DOM for tasks
         function createTaskElement(item, listType, isFolderContext = false) {
             if (!item) return null;
-            if (item.isFolder) return null; // Handled separately
+            if (item.isFolder) return null; 
             if (window.isArchiveMode !== (item.isCompleted || false)) return null;
 
             const li = document.createElement('li');
@@ -363,12 +428,29 @@
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'task-content';
+            
             const topRow = document.createElement('div');
             topRow.className = 'task-top-row';
             
             if (item.isPriority && !window.isArchiveMode) topRow.innerHTML += '<span class="priority-flag">🚩</span>';
-            topRow.innerHTML += `<span class="task-text">${item.text}</span>` + (item.details && !window.isArchiveMode ? '<span style="opacity:0.5; font-size:0.9rem;"> 📝</span>' : '');
+            topRow.innerHTML += `<span class="task-text">${item.text}</span>`;
             contentDiv.appendChild(topRow);
+
+            // Display Notes directly on the board
+            if (item.details && !window.isArchiveMode) {
+                const detailsEl = document.createElement('div');
+                detailsEl.className = 'task-details-preview';
+                detailsEl.textContent = item.details;
+                contentDiv.appendChild(detailsEl);
+            }
+
+            // Display Image directly on the board
+            if (item.image && !window.isArchiveMode) {
+                const imgEl = document.createElement('img');
+                imgEl.src = item.image;
+                imgEl.className = 'task-thumbnail';
+                contentDiv.appendChild(imgEl);
+            }
             
             if (window.isArchiveMode && item.completedAt) contentDiv.innerHTML += `<div class="archive-meta">Completed ${formatDate(item.completedAt)} by ${item.completedBy}</div>`;
 
@@ -396,7 +478,6 @@
         }
 
         window.renderLists = function() {
-            // Clean up Sortable instances to prevent memory leaks
             Object.values(window.sortableInstances).forEach(s => s.destroy());
             window.sortableInstances = {};
 
@@ -455,7 +536,6 @@
                         nestedUl.dataset.folder = item.id;
                         if (!item.isExpanded) nestedUl.style.display = 'none';
 
-                        // Sort and render child tasks
                         if (item.tasks) {
                             item.tasks.sort((a, b) => (a.isPriority ? -1 : 1) - (b.isPriority ? -1 : 1));
                             item.tasks.forEach(child => {
@@ -472,7 +552,6 @@
                     }
                 });
 
-                // Initialize Sortable for Drag and Drop ONLY if not in Archive Mode
                 if (!window.isArchiveMode) {
                     window.initSortable(rootUl, listType);
                     const folderUls = rootUl.querySelectorAll('.folder-list');
@@ -485,9 +564,8 @@
             const isRoot = el.dataset.folder === 'root';
             window.sortableInstances[`${listType}_${el.dataset.folder}`] = new Sortable(el, {
                 group: {
-                    name: listType, // Only allow drag within the same column
+                    name: listType, 
                     put: function (to, from, dragEl) {
-                        // Smart Rejection: Folders cannot be dropped inside other folders
                         if (!isRoot && dragEl.classList.contains('is-folder')) return false; 
                         return true;
                     }
@@ -521,7 +599,7 @@
         window.addTask = function(l) {
             const input = document.getElementById(l+'-input');
             if (input.value.trim() === "") return;
-            window.lists[l].push({id: Date.now().toString(), text: input.value.trim(), details: "", isPriority: false, isCompleted: false, created: new Date().toISOString()});
+            window.lists[l].push({id: Date.now().toString(), text: input.value.trim(), details: "", image: null, isPriority: false, isCompleted: false, created: new Date().toISOString()});
             input.value = ""; window.saveToCloud();
         }
 
@@ -590,18 +668,64 @@
             }, 300);
         }
 
+        // --- IMAGE COMPRESSION ENGINE ---
+        window.compressImageFile = function(file, callback) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_DIM = 600; // Compresses image to fit within a 600x600 box
+
+                    if (width > height) {
+                        if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; }
+                    } else {
+                        if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; }
+                    }
+
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Export as JPEG at 60% quality (massively reduces file size)
+                    callback(canvas.toDataURL('image/jpeg', 0.6));
+                }
+            }
+        }
+
         window.openModal = function(l, item) {
-            window.currentActiveTask = { listType: l, item: item };
+            window.currentActiveTask = { listType: l, item: item, tempImage: item.image || null };
             document.getElementById('modalTaskText').value = item.text;
             
             const selectEl = document.getElementById('modalListSelect');
             selectEl.value = l;
-            selectEl.style.display = item.isFolder ? 'none' : 'block'; // Hide assignment swap for folders to prevent complexity
+            selectEl.style.display = item.isFolder ? 'none' : 'block'; 
 
             document.getElementById('modalDetails').value = item.details || "";
+            document.getElementById('modalDetails').style.display = item.isFolder ? 'none' : 'block';
+            
             document.getElementById('modalPriority').checked = item.isPriority || false;
             document.getElementById('modalPriority').style.display = item.isFolder ? 'none' : 'inline-block';
             document.getElementById('modalPriorityLabel').style.display = item.isFolder ? 'none' : 'inline-block';
+            
+            document.getElementById('modalImageControls').style.display = item.isFolder ? 'none' : 'flex';
+            
+            // Image Preview Setup
+            const imgPreview = document.getElementById('modalImagePreview');
+            const removeBtn = document.getElementById('btn-remove-image');
+            if (item.image && !item.isFolder) {
+                imgPreview.src = item.image;
+                imgPreview.style.display = 'block';
+                removeBtn.style.display = 'block';
+            } else {
+                imgPreview.src = '';
+                imgPreview.style.display = 'none';
+                removeBtn.style.display = 'none';
+            }
             
             document.getElementById('modalCreated').textContent = "Created: " + formatDate(item.created);
             document.getElementById('modalEdited').textContent = item.edited ? "Last edited: " + formatDate(item.edited) : "";
@@ -611,6 +735,7 @@
         window.closeModal = function() { 
             document.getElementById('modalOverlay').style.display = 'none'; 
             window.currentActiveTask = null;
+            document.getElementById('modalImageInput').value = ""; // Reset file input
         }
 
         window.saveTaskDetails = function() {
@@ -623,25 +748,27 @@
             const newDetails = document.getElementById('modalDetails').value;
             const newPriority = document.getElementById('modalPriority').checked;
             const newListType = document.getElementById('modalListSelect').value;
+            const newImage = window.currentActiveTask.tempImage;
             
             if (newText === "") { alert("Name cannot be empty."); return; }
 
             window.updateTaskData(oldListType, itemId, (itemToUpdate, parentArray) => {
                 let changed = false;
 
-                if (newText !== itemToUpdate.text || newDetails !== itemToUpdate.details || newPriority !== itemToUpdate.isPriority) {
+                if (newText !== itemToUpdate.text || newDetails !== itemToUpdate.details || 
+                    newPriority !== itemToUpdate.isPriority || newImage !== itemToUpdate.image) {
                     itemToUpdate.text = newText;
                     itemToUpdate.details = newDetails;
                     itemToUpdate.isPriority = newPriority;
+                    itemToUpdate.image = newImage;
                     changed = true;
                 }
 
-                // If task was re-assigned to a different column
                 if (!itemToUpdate.isFolder && oldListType !== newListType) {
                     const idx = parentArray.findIndex(x => x.id === itemId);
                     const movedTask = parentArray.splice(idx, 1)[0];
                     movedTask.edited = new Date().toISOString();
-                    window.lists[newListType].push(movedTask); // Sends to root of new list
+                    window.lists[newListType].push(movedTask); 
                     window.saveToCloud();
                 } else if (changed) {
                     itemToUpdate.edited = new Date().toISOString();
@@ -653,7 +780,7 @@
         }
 
         // ========================================================
-        // EXPLICIT HARDWIRED EVENT LISTENERS 
+        // EVENT LISTENERS 
         // ========================================================
         document.getElementById('archive-toggle').addEventListener('click', window.toggleArchive);
         
@@ -665,6 +792,37 @@
         
         document.getElementById('modal-cancel-btn').addEventListener('click', (e) => { e.preventDefault(); window.closeModal(); });
         document.getElementById('modal-save-btn').addEventListener('click', (e) => { e.preventDefault(); window.saveTaskDetails(); });
+
+        // Image Upload Listeners
+        document.getElementById('modalImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const saveBtn = document.getElementById('modal-save-btn');
+            saveBtn.textContent = "Compressing..."; 
+            saveBtn.disabled = true;
+
+            window.compressImageFile(file, function(compressedBase64) {
+                window.currentActiveTask.tempImage = compressedBase64;
+                
+                const imgPreview = document.getElementById('modalImagePreview');
+                imgPreview.src = compressedBase64;
+                imgPreview.style.display = 'block';
+                document.getElementById('btn-remove-image').style.display = 'block';
+
+                saveBtn.textContent = "Save";
+                saveBtn.disabled = false;
+            });
+        });
+
+        document.getElementById('btn-remove-image').addEventListener('click', function(e) {
+            e.preventDefault();
+            if(window.currentActiveTask) window.currentActiveTask.tempImage = null;
+            document.getElementById('modalImagePreview').src = '';
+            document.getElementById('modalImagePreview').style.display = 'none';
+            this.style.display = 'none';
+            document.getElementById('modalImageInput').value = "";
+        });
 
         window.renderLists();
     </script>
