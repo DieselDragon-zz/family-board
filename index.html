@@ -14,7 +14,7 @@
         }
 
         body, html { 
-            width: 100%; 
+            width: 100vw; 
             height: 100vh; height: 100dvh; 
             overflow: hidden; 
         }
@@ -101,7 +101,7 @@
         .priority-flag { color: #ff4d4d; margin-right: 10px; font-size: 1.2rem; display: inline-block; }
         .archive-meta { font-size: 0.75rem; margin-top: 5px; opacity: 0.6; font-style: italic; }
 
-        /* Task Notes & Image Preview (Main Board) */
+        /* Task Notes & Thumbnail Styling */
         .task-details-preview {
             font-size: 0.9rem;
             opacity: 0.7;
@@ -114,13 +114,16 @@
             -webkit-box-orient: vertical;
         }
         .task-thumbnail {
-            max-width: 100%;
-            max-height: 200px;
+            width: 70px;
+            height: 70px;
             border-radius: 6px;
             margin-top: 10px;
             object-fit: cover;
+            cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
         }
+        .task-thumbnail:hover { transform: scale(1.03); }
 
         /* Action Buttons */
         .task-actions { display: flex; gap: 10px; align-items: center; padding-top: 2px; }
@@ -157,7 +160,7 @@
         .archive-mode .task, .archive-mode .folder-header { opacity: 0.8; }
         .archive-mode .layer-header h2 { color: #a0a0a0; }
 
-        /* MODAL (POPUP) */
+        /* TASK DETAILS MODAL */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
@@ -202,13 +205,25 @@
             border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold; display: none;
         }
         #modalImagePreview {
-            max-width: 100%; max-height: 250px; object-fit: contain; 
-            border-radius: 8px; display: none; background: #111; border: 1px solid #444;
+            max-width: 100%; max-height: 200px; object-fit: contain; 
+            border-radius: 8px; display: none; background: #111; border: 1px solid #444; cursor: pointer;
+        }
+
+        /* FULLSCREEN IMAGE VIEWER MODAL */
+        #fullscreenModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; padding: 20px;
+        }
+        #fullscreenImage {
+            max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;
+        }
+        #fullscreenClose {
+            position: absolute; top: 20px; right: 25px; background: none; border: none;
+            color: white; font-size: 2.5rem; cursor: pointer; font-weight: bold;
         }
 
         .metadata { font-size: 0.85rem; color: #aaa; display: flex; flex-direction: column; gap: 5px; margin-top: 5px; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px; }
-        .modal-actions button { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; }
         .btn-cancel { background: #444; color: #fff; }
         .btn-save { background: #4a90e2; color: #fff; }
         .btn-save:disabled { background: #333; color: #888; cursor: not-allowed; }
@@ -221,7 +236,6 @@
     <button id="archive-toggle">Archive</button>
 
     <div class="swipe-container" id="main-container">
-        <!-- LAYER 1: MY LIST -->
         <div class="layer" id="layer-my">
             <div class="layer-header">
                 <h2 id="title-my">My List</h2>
@@ -235,7 +249,6 @@
             <ul id="my-list"></ul>
         </div>
         
-        <!-- LAYER 2: JOINT LIST -->
         <div class="layer" id="layer-joint">
             <div class="layer-header">
                 <h2 id="title-joint">Joint List</h2>
@@ -249,7 +262,6 @@
             <ul id="joint-list"></ul>
         </div>
         
-        <!-- LAYER 3: HER LIST -->
         <div class="layer" id="layer-her">
             <div class="layer-header">
                 <h2 id="title-her">Her List</h2>
@@ -264,7 +276,6 @@
         </div>
     </div>
 
-    <!-- TASK DETAILS MODAL -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <input type="text" id="modalTaskText" placeholder="Task Name">
@@ -283,11 +294,11 @@
             <textarea id="modalDetails" placeholder="Add extra notes or details here..."></textarea>
             
             <div class="modal-image-controls" id="modalImageControls">
-                <label for="modalImageInput" class="btn-image-upload">📷 Attach Image</label>
+                <label for="modalImageInput" class="btn-image-upload">📷 Upload Image</label>
                 <input type="file" id="modalImageInput" accept="image/*" style="display: none;">
                 <button type="button" id="btn-remove-image">🗑️ Remove</button>
             </div>
-            <img id="modalImagePreview">
+            <img id="modalImagePreview" title="Double-click to view full screen">
 
             <div class="metadata">
                 <span id="modalCreated"></span>
@@ -300,6 +311,11 @@
         </div>
     </div>
 
+    <div id="fullscreenModal">
+        <button id="fullscreenClose">&times;</button>
+        <img id="fullscreenImage">
+    </div>
+
     <div id="sync-status">Operating locally...</div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -309,7 +325,7 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // ========================================================
-        // YOUR SECURE FIREBASE CONFIG
+        // FIREBASE CONFIG (Firestore Only - Free Spark Plan)
         // ========================================================
         const firebaseConfig = {
           apiKey: "AIzaSyDLNWYsMaF9e5pUbwfavFS6T4xI5Gjdygk",
@@ -356,16 +372,7 @@
 
         window.saveToCloud = function() {
             try {
-                const payloadString = JSON.stringify(window.lists);
-                const sizeKB = Math.round(payloadString.length / 1024);
-                
-                // Firestore document limit is 1024KB. Add a warning buffer.
-                if (sizeKB > 900) {
-                    alert("Warning: Your task board is getting full from images! Please delete some completed tasks to free up space.");
-                }
-
-                localStorage.setItem('familyTasks', payloadString);
-                
+                localStorage.setItem('familyTasks', JSON.stringify(window.lists));
                 if (db && tasksDocRef) {
                     document.getElementById('sync-status').textContent = "Saving...";
                     document.getElementById('sync-status').style.color = "#f39c12";
@@ -374,9 +381,8 @@
                         document.getElementById('sync-status').style.color = "#2ecc71";
                     }).catch(err => {
                         console.error(err);
-                        document.getElementById('sync-status').textContent = "Save Failed: Size limit or Network.";
+                        document.getElementById('sync-status').textContent = "Save Failed: Network error.";
                         document.getElementById('sync-status').style.color = "#e74c3c";
-                        if (err.code === 'resource-exhausted') alert("Error: Board is too large. Remove images to save successfully.");
                     });
                 }
                 window.renderLists();
@@ -416,7 +422,6 @@
             window.renderLists();
         }
 
-        // DRY Helper to build the visual DOM for tasks
         function createTaskElement(item, listType, isFolderContext = false) {
             if (!item) return null;
             if (item.isFolder) return null; 
@@ -436,7 +441,6 @@
             topRow.innerHTML += `<span class="task-text">${item.text}</span>`;
             contentDiv.appendChild(topRow);
 
-            // Display Notes directly on the board
             if (item.details && !window.isArchiveMode) {
                 const detailsEl = document.createElement('div');
                 detailsEl.className = 'task-details-preview';
@@ -444,11 +448,16 @@
                 contentDiv.appendChild(detailsEl);
             }
 
-            // Display Image directly on the board
+            // Image Thumbnail with Double-Click Fullscreen
             if (item.image && !window.isArchiveMode) {
                 const imgEl = document.createElement('img');
                 imgEl.src = item.image;
                 imgEl.className = 'task-thumbnail';
+                imgEl.title = "Double-click to view full size";
+                imgEl.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    window.openFullscreen(item.image);
+                });
                 contentDiv.appendChild(imgEl);
             }
             
@@ -466,7 +475,11 @@
                 deleteBtn.addEventListener('click', function(e) { e.stopPropagation(); window.deleteTask(listType, item.id, this); });
 
                 actionsDiv.appendChild(completeBtn); actionsDiv.appendChild(deleteBtn);
-                li.addEventListener('dblclick', () => window.openModal(listType, item));
+                li.addEventListener('dblclick', (e) => {
+                    if (e.target.tagName !== 'IMG') {
+                        window.openModal(listType, item);
+                    }
+                });
             } else {
                 const undoBtn = document.createElement('button');
                 undoBtn.className = 'action-btn btn-undo'; undoBtn.innerHTML = '⟲';
@@ -668,35 +681,6 @@
             }, 300);
         }
 
-        // --- IMAGE COMPRESSION ENGINE ---
-        window.compressImageFile = function(file, callback) {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(e) {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_DIM = 600; // Compresses image to fit within a 600x600 box
-
-                    if (width > height) {
-                        if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; }
-                    } else {
-                        if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; }
-                    }
-
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Export as JPEG at 60% quality (massively reduces file size)
-                    callback(canvas.toDataURL('image/jpeg', 0.6));
-                }
-            }
-        }
-
         window.openModal = function(l, item) {
             window.currentActiveTask = { listType: l, item: item, tempImage: item.image || null };
             document.getElementById('modalTaskText').value = item.text;
@@ -714,7 +698,6 @@
             
             document.getElementById('modalImageControls').style.display = item.isFolder ? 'none' : 'flex';
             
-            // Image Preview Setup
             const imgPreview = document.getElementById('modalImagePreview');
             const removeBtn = document.getElementById('btn-remove-image');
             if (item.image && !item.isFolder) {
@@ -735,8 +718,24 @@
         window.closeModal = function() { 
             document.getElementById('modalOverlay').style.display = 'none'; 
             window.currentActiveTask = null;
-            document.getElementById('modalImageInput').value = ""; // Reset file input
+            document.getElementById('modalImageInput').value = ""; 
         }
+
+        window.openFullscreen = function(url) {
+            document.getElementById('fullscreenImage').src = url;
+            document.getElementById('fullscreenModal').style.display = 'flex';
+        }
+
+        document.getElementById('fullscreenClose').addEventListener('click', () => {
+            document.getElementById('fullscreenModal').style.display = 'none';
+        });
+
+        // Close fullscreen overlay when clicking background
+        document.getElementById('fullscreenModal').addEventListener('click', function(e) {
+            if (e.target.id === 'fullscreenModal') {
+                this.style.display = 'none';
+            }
+        });
 
         window.saveTaskDetails = function() {
             if (!window.currentActiveTask) { window.closeModal(); return; }
@@ -793,26 +792,52 @@
         document.getElementById('modal-cancel-btn').addEventListener('click', (e) => { e.preventDefault(); window.closeModal(); });
         document.getElementById('modal-save-btn').addEventListener('click', (e) => { e.preventDefault(); window.saveTaskDetails(); });
 
-        // Image Upload Listeners
+        // High-Quality Image Reader (Base64 saved directly to Firestore)
         document.getElementById('modalImageInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-            
-            const saveBtn = document.getElementById('modal-save-btn');
-            saveBtn.textContent = "Compressing..."; 
-            saveBtn.disabled = true;
 
-            window.compressImageFile(file, function(compressedBase64) {
-                window.currentActiveTask.tempImage = compressedBase64;
-                
-                const imgPreview = document.getElementById('modalImagePreview');
-                imgPreview.src = compressedBase64;
-                imgPreview.style.display = 'block';
-                document.getElementById('btn-remove-image').style.display = 'block';
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function() {
+                    // Mild compression to preserve original quality while fitting Firestore's 1MB limit per document
+                    const maxDim = 1200;
+                    let width = img.width;
+                    let height = img.height;
 
-                saveBtn.textContent = "Save";
-                saveBtn.disabled = false;
-            });
+                    if (width > height && width > maxDim) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else if (height > maxDim) {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // High quality output
+                    const highQualityDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+                    window.currentActiveTask.tempImage = highQualityDataUrl;
+
+                    const imgPreview = document.getElementById('modalImagePreview');
+                    imgPreview.src = highQualityDataUrl;
+                    imgPreview.style.display = 'block';
+                    document.getElementById('btn-remove-image').style.display = 'block';
+                };
+            };
+        });
+
+        // Double-click preview inside modal for full screen view
+        document.getElementById('modalImagePreview').addEventListener('dblclick', function() {
+            if (this.src) window.openFullscreen(this.src);
         });
 
         document.getElementById('btn-remove-image').addEventListener('click', function(e) {
